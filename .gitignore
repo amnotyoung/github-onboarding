@@ -1,0 +1,9 @@
+.DS_Store
+.build/
+.playwright-cli/
+output/
+github-onboarding-html.zip
+assets/brand/any-logo-color-reference.jpg
+assets/demo/workflow.html
+assets/demo/workflow.mp4
+assets/demo/workflow-poster.png
