@@ -2,13 +2,15 @@ import { STEPS, COMMITS, getState, visibleNode } from './lab-model.mjs';
 import { newMission, transitionMission, missionLesson, missionScene, missionCommits, missionNodeVisible, missionGroup, missionInteraction, missionTimeline, checkpointLabel, DRAFTS } from './mission-model.mjs';
 import { createMissionUI } from './mission-ui.mjs';
 import { createCollaborationMap } from './collaboration-map.mjs';
+import { createCoordinationUI } from './coordination-ui.mjs';
 
 const $ = selector => document.querySelector(selector);
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const initialStep = Number(new URLSearchParams(location.hash.slice(1)).get('step') || 0);
 let step = getState(initialStep).step, positions = {}, selected = STEPS[step].selected;
 let sceneAPI = null, stepPending = false, toastTimer;
-let mode = new URLSearchParams(location.search).get('mode') === 'flow' ? 'flow' : 'mission', mission = newMission();
+const requestedMode = new URLSearchParams(location.search).get('mode');
+let mode = ['flow','coordination'].includes(requestedMode) ? requestedMode : 'mission', mission = newMission();
 let arrange = mode === 'flow';
 const lessonNow = () => mode === 'mission' ? missionLesson(mission) : STEPS[step];
 const stateNow = () => mode === 'mission' ? missionScene(mission) : getState(step);
@@ -24,6 +26,7 @@ const selectCommit = key => {
 const missionUI = createMissionUI({ dispatch: missionAction, getContext: () => ({ mission }), selectCommit, showMessage: message => { $('#mission-message').textContent = message; } });
 const collaborationMap = createCollaborationMap({getContext:()=>({mission,selected}),activate:activateScene,selectCommit,canInteract});
 
+const coordinationUI = createCoordinationUI();
 function canInteract() { return true; }
 async function activateScene() {
   if (!canInteract() || stepPending) return;
@@ -64,7 +67,7 @@ async function missionAction(action) {
 async function changeMode(nextMode) {
   if (mode === nextMode) return;
   mode = nextMode; positions = {}; arrange = mode === 'flow'; selected = lessonNow().selected;
-  $('#snapshot-details').open = mode === 'flow'; sceneAPI?.rebuild(); renderStep(); if(mode==='flow')ensureScene();
+  $('#snapshot-details').open = mode === 'flow'; if(mode!=='coordination')sceneAPI?.rebuild(); renderStep(); if(mode==='flow')ensureScene();
 }
 
 function toast(message) { $('#toast').textContent = message; clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('#toast').textContent = ''; }, 3500); }
@@ -83,6 +86,14 @@ function renderSnapshot() {
   collaborationMap.select(selected);
 }
 function renderStep() {
+  $('#basic-lab').hidden = mode === 'coordination';
+  $('#coordination-lab').hidden = mode !== 'coordination';
+  for(const name of ['mission','coordination','flow'])$(`#mode-${name}`).setAttribute('aria-pressed',String(mode===name));
+  if(mode==='coordination') {
+    document.body.dataset.learningMode='coordination';
+    const url=new URL(location.href);url.searchParams.set('mode','coordination');url.hash='';history.replaceState(null,'',url);
+    coordinationUI.render();return;
+  }
   const lesson = lessonNow(), state = stateNow();
   document.body.dataset.learningMode = mode;
   $('#action-focus').hidden = mode !== 'mission'; $('#extra-tools').hidden = mode !== 'mission';
@@ -148,6 +159,7 @@ document.querySelectorAll('[data-answer]').forEach(button => { button.onclick = 
   $('#quiz-feedback').textContent = `${correct ? '맞습니다. ' : '다시 확인해 보세요. '}${lesson.feedback}`;
 }; });
 $('#reset-layout').onclick = () => { positions = {}; sceneAPI?.cancelDrag(); sceneAPI?.updatePositions(); };
+$('#mode-coordination').onclick = () => changeMode('coordination');
 $('#mode-mission').onclick = () => changeMode('mission'); $('#mode-flow').onclick = () => changeMode('flow');
 $('#close-activity').onclick = () => $('#activity-dialog').close(); $('#close-record').onclick = () => $('#record-dialog').close();
 $('#scene-back').onclick = () => missionAction({ kind: 'navigate', index: (mission.history || []).length - 1 });

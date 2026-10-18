@@ -54,7 +54,8 @@ export function createCollaborationMap({ getContext, activate, selectCommit, can
       identity.append(make('p','map-eyebrow',isRemote?'나와 지수가 공유하는 저장소':repo==='peer'?'지수의 저장소':'내 저장소'),make('h3','',isRemote?'GitHub 저장소':`${repo==='local'?mine:peer}의 컴퓨터`));
       if(!isRemote)card.append(route(repo));
       head.append(identity,make('span','map-scope',isRemote?'공유된 기록':repo==='local'?'담당: 본문':'담당: 제목'));card.append(head);
-      const standard=make('button','map-main',`기준본 · ${labels[data.main]}`);standard.type='button';standard.onclick=()=>selectCommit(`${repo}:${data.main}`);standard.dataset.main=data.main;card.append(standard);
+      const standard=make('button','map-main',`기준본${m.phase==='brief'?'':' main'} · ${labels[data.main]}`);standard.type='button';standard.onclick=()=>selectCommit(`${repo}:${data.main}`);standard.dataset.main=data.main;card.append(standard);
+      if(!isRemote&&data.branch){const branch=make('div','map-branch-pointer',`↳ 작업 공간 ${repo==='local'?'story':'title'} → ${data.branch}`);branch.dataset.branch=repo;card.append(branch);}
       if(isRemote){
         const contents=make('div','map-shared-content');contents.append(make('strong','',commits[data.main].lines[0].replace(/^# /,'')));
         const status=data.main==='M'?'기준본 M에는 지수의 제목과 내 본문이 있습니다.':data.main==='P'?'기준본 P에는 지수의 제목이 있습니다. 내 본문은 아직 합치지 않았습니다.':'기준본 B에는 처음 이야기가 있습니다.';

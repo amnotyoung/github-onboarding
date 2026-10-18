@@ -22,7 +22,9 @@
       <p class="session-info">나 + 지수 · 가상 인물</p>
     </section>
 
-    <div class="learning-toolbar"><div class="learning-modes" aria-label="학습 화면"><button id="mode-mission" aria-pressed="true">2D 협업 지도</button><button id="mode-flow" aria-pressed="false">3D 기록 참고</button></div><span>실제 저장소를 변경하지 않는 교육용 실습</span></div>
+    <div class="learning-toolbar"><div class="learning-modes" aria-label="학습 화면"><button id="mode-mission" aria-pressed="true">2D 협업 지도</button><button id="mode-coordination" aria-pressed="false">이슈·충돌 실습</button><button id="mode-flow" aria-pressed="false">3D 기록 참고</button></div><span>실제 저장소를 변경하지 않는 교육용 실습</span></div>
+    <section id="coordination-lab" aria-label="이슈 할당과 충돌 해결 실습" hidden></section>
+    <div id="basic-lab">
     <section id="mission-area" class="mission-area" aria-label="협업 미션"><div class="mission-brief"><p><strong>미션</strong> 백설공주가 숲속 집에 도착한 뒤의 이야기를 한 문장 보태세요.</p><div id="mission-roles" aria-label="미션 역할"></div></div><ol id="mission-progress" class="mission-progress" aria-label="미션 진행 상태"></ol></section>
     <section id="action-focus"><nav id="scene-navigation" aria-label="학습 장면 탐색"><div class="navigation-controls"><button id="scene-back" type="button" aria-label="이전 단계" title="이전 단계">←<span class="navigation-word"> 이전 단계</span></button><select id="scene-jump" aria-label="지나온 장면 선택"></select><button id="scene-forward" type="button" aria-label="다시 앞으로" title="다시 앞으로"><span class="navigation-word">다시 앞으로 </span>→</button></div><p id="navigation-note"></p></nav><h2 id="action-instruction"></h2><p id="action-hint"></p></section><div class="lab-layout">
       <section class="scene-shell" aria-label="저장소와 기록">
@@ -51,6 +53,7 @@
     <div class="bottom-note"><p><span class="legend-dot"></span> 구슬 = 커밋 <span class="legend-line"></span> 실선 = 부모 기록 연결 <span class="legend-tag">main</span> 이름표 = 브랜치</p><div class="arrange-controls"><label><input id="arrange-toggle" type="checkbox"> 구슬 배치 조정</label><button id="reset-layout">배치 초기화</button></div></div>
     <p class="shared-note" id="shared-note">구슬의 위치는 설명을 위한 배치입니다. 움직여도 커밋 내용과 부모 관계는 변하지 않습니다.</p>
     <details class="guide"><summary>실습 방법 · 개념 참고</summary><div><p>나는 본문을 수정합니다. 지수는 제목을 수정합니다. 지수는 정해진 동작과 의견을 보여 주는 가상 인물입니다.</p><p>각 컴퓨터에 있는 저장소를 로컬 저장소라고 합니다. GitHub 저장소는 기록을 공유하는 원격 저장소입니다. 기록을 공유해도 다른 컴퓨터의 저장소는 자동으로 바뀌지 않습니다.</p><p>현재 안내는 다음에 누를 버튼 하나를 가리킵니다. 기록 버튼은 당시 파일 내용을 보여 줍니다. “이전 단계”와 “다시 앞으로”는 이미 방문한 단계를 보여 줍니다.</p><p>이전 단계에서 새 동작을 하면 이후 진행 결과는 사라집니다. 보기만 하면 기존 결과는 유지됩니다. 페이지를 새로고침하면 실습이 초기화됩니다.</p><p>“3D 기록 참고”는 기록의 연결 관계를 보여 줍니다. 이 화면은 지수의 검토가 완료됐다고 가정합니다. 실제 검토 과정은 “2D 협업 지도”에 있습니다.</p><p>이 실습은 최신 수정 기록에 대한 지수의 승인이 있어야 합칠 수 있습니다. 실제 GitHub의 필수 검토 설정은 저장소마다 다릅니다. 원격 추적 브랜치와 접근 권한 설정은 생략했습니다.</p><p><a href="https://git-scm.com/book/en/v2/Git-Branching-Branches-in-a-Nutshell" target="_blank" rel="noopener noreferrer">브랜치 설명</a> · <a href="https://docs.github.com/en/get-started/using-github/github-flow" target="_blank" rel="noopener noreferrer">GitHub 작업 흐름</a> · <a href="https://docs.github.com/en/get-started/using-git/getting-changes-from-a-remote-repository" target="_blank" rel="noopener noreferrer">기준본 받아오기</a></p></div></details>
+    </div>
   </main>
   <div id="toast" role="status"></div>
   <dialog id="activity-dialog" class="activity-dialog" aria-labelledby="activity-title"><div class="dialog-heading"><h2 id="activity-title">본문 수정</h2><button id="close-activity" aria-label="수정·검토 창 닫기">×</button></div><div id="activity-body"></div><button id="dialog-back" type="button" class="dialog-back">← 이전 단계로 돌아가기</button></dialog>

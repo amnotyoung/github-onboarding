@@ -19,6 +19,14 @@
 
 **3D 기록 참고**는 별도의 10단계 3D 참고 화면입니다. 구슬 클릭, 회전, 확대, 배치 조정을 제공합니다. 기본 2D 실습에는 WebGL이 필요하지 않습니다.
 
+## 이슈·충돌 실습
+
+상단의 **이슈·충돌 실습**에서 할 일 두 개를 나와 지수에게 각각 할당합니다. 담당자 지정은 파일이나 브랜치를 만들지 않습니다. 각자 기준본 O에서 별도 브랜치를 만들고 같은 결말 문장을 다르게 수정합니다.
+
+두 PR 중 먼저 합칠 PR을 선택할 수 있습니다. 먼저 합친 PR이 기준본을 M1으로 바꾸면 남은 PR이 충돌합니다. 내 문장, 지수의 문장, 두 내용을 합친 문장 중 하나를 선택해 해결 기록 R을 만듭니다. 재검토 후 남은 PR을 합치고 각 저장소에서 M2를 받아옵니다. 이전 단계에서 병합 순서나 해결 문장을 바꿔 결과를 비교할 수 있습니다.
+
+최초 PR 검토는 완료했다고 가정합니다. 충돌 해결은 GitHub 편집기에서 실행하는 사례입니다. 이슈에는 PR의 `Closes #번호` 연결을 사용해 병합 시 닫히는 모습을 보여 줍니다. 이슈가 닫혔다고 요청의 의미가 자동 검증되는 것은 아닙니다.
+
 ## 실행
 
 Node.js 20 이상에서:
@@ -29,7 +37,7 @@ npm start
 
 `http://localhost:4173/lab.html`을 엽니다. 서버는 정적 파일만 제공하며 방, 참여자, 실시간 동기화 API가 없습니다. 실습 상태는 브라우저 메모리에 있고 새로고침하면 초기화됩니다.
 
-정적 호스팅에도 `lab.html`, `lab.js`, `lab-model.mjs`, `mission-model.mjs`, `mission-ui.mjs`, `collaboration-map.mjs`, `lab.css`, `assets/`를 함께 올리면 동작합니다. JavaScript 모듈을 사용하므로 `file://` 직접 열기 대신 HTTP 서버를 사용하세요. 3D 참고 화면은 WebGL 2가 필요합니다. Three.js 0.180.0과 OrbitControls를 로컬에 포함해 실행 중 CDN 접속은 필요 없습니다. 라이선스: `assets/vendor/three/LICENSE` (MIT).
+정적 호스팅에도 `lab.html`, `lab.js`, `lab-model.mjs`, `mission-model.mjs`, `mission-ui.mjs`, `collaboration-map.mjs`, `coordination-model.mjs`, `coordination-ui.mjs`, `lab.css`, `assets/`를 함께 올리면 동작합니다. JavaScript 모듈을 사용하므로 `file://` 직접 열기 대신 HTTP 서버를 사용하세요. 3D 참고 화면은 WebGL 2가 필요합니다. Three.js 0.180.0과 OrbitControls를 로컬에 포함해 실행 중 CDN 접속은 필요 없습니다. 라이선스: `assets/vendor/three/LICENSE` (MIT).
 
 ## 검증
 
