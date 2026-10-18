@@ -1,8 +1,9 @@
 import { STEPS, COMMITS, getState, visibleNode } from './lab-model.mjs';
-import { newMission, transitionMission, missionLesson, missionScene, missionCommits, missionNodeVisible, missionGroup, missionInteraction, missionTimeline, checkpointLabel, DRAFTS } from './mission-model.mjs';
+import { newMission, transitionMission, missionLesson, missionScene, missionCommits, missionNodeVisible, missionGroup, missionInteraction, missionTimeline, checkpointLabel, missionObservation, DRAFTS } from './mission-model.mjs';
 import { createMissionUI } from './mission-ui.mjs';
 import { createCollaborationMap } from './collaboration-map.mjs';
 import { createCoordinationUI } from './coordination-ui.mjs';
+import { createLearningMotion, missionChange } from './learning-motion.mjs';
 
 const $ = selector => document.querySelector(selector);
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -23,11 +24,12 @@ const selectCommit = key => {
   selected = key; $('#snapshot-details').open = true; renderSnapshot();
   if (mode === 'mission' && !$('#record-dialog').open) $('#record-dialog').showModal();
 };
+const missionMotion = createLearningMotion(() => $('#collaboration-map'), () => $('#mission-motion-summary'));
 const missionUI = createMissionUI({ dispatch: missionAction, getContext: () => ({ mission }), selectCommit, showMessage: message => { $('#mission-message').textContent = message; } });
 const collaborationMap = createCollaborationMap({getContext:()=>({mission,selected}),activate:activateScene,selectCommit,canInteract});
 
 const coordinationUI = createCoordinationUI();
-function canInteract() { return true; }
+function canInteract() { return !missionMotion.busy; }
 async function activateScene() {
   if (!canInteract() || stepPending) return;
   const interaction = missionInteraction(mission);
@@ -35,7 +37,7 @@ async function activateScene() {
   if (interaction.kind === 'edit' || (interaction.kind === 'review' && mission.phase === 'reposted')) { $('#activity-dialog').showModal(); return; }
   if (interaction.kind === 'review') {
     await missionAction({ kind: 'request-changes', issue: DRAFTS[mission.draft].issue });
-    if (mission.phase === 'changes') $('#activity-dialog').showModal(); return;
+    if (mode === 'mission' && mission.phase === 'changes') $('#activity-dialog').showModal(); return;
   }
   await missionAction({ kind: interaction.kind });
 }
@@ -46,12 +48,16 @@ function afterMissionChange(previousPhase) {
 async function missionAction(action) {
   if (stepPending) return; stepPending = true;
   try {
+    const previousState = mission, beforeLayout = missionMotion.capture();
     const previousPhase = mission.phase;
     const hadFuture = (mission.future || []).length > 0;
     mission = transitionMission(mission, action, { id: 'solo-author', name: '나' }, { solo: true });
     afterMissionChange(previousPhase);
     if (['restart', 'navigate'].includes(action.kind)) positions = {};
     selected = lessonNow().selected; sceneAPI?.rebuild(action.kind !== 'navigate'); renderStep();
+    if (action.kind !== 'restart') await missionMotion.play(beforeLayout, missionChange(action.kind, previousState, mission, missionObservation(mission)));
+    else $('#mission-motion-summary').hidden = true;
+    if (mode !== 'mission') return;
     if (!['navigate', 'restart', 'request-changes'].includes(action.kind) && !mission.experiment) {
       const next = $('#collaboration-map .map-primary');
       next?.focus({ preventScroll: true });
@@ -66,6 +72,7 @@ async function missionAction(action) {
 }
 async function changeMode(nextMode) {
   if (mode === nextMode) return;
+  missionMotion.cancel(); coordinationUI.cancel();
   mode = nextMode; positions = {}; arrange = mode === 'flow'; selected = lessonNow().selected;
   $('#snapshot-details').open = mode === 'flow'; if(mode!=='coordination')sceneAPI?.rebuild(); renderStep(); if(mode==='flow')ensureScene();
 }

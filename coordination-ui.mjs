@@ -1,12 +1,16 @@
 import {newCoordination,transitionCoordination,coordinationScene,coordinationAction,coordinationTimeline,coordinationObservation,COORD_STEPS,STORY,RESOLUTIONS} from './coordination-model.mjs';
+import {createLearningMotion,coordinationChange} from './learning-motion.mjs';
 const node=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text)n.textContent=text;return n;};
-const person=owner=>owner==='mine'?'나':'지수';
 export function createCoordinationUI(){
  let state=newCoordination(), choice=null;
  const root=()=>document.querySelector('#coordination-lab');
  function button(text,action,cls='map-primary'){const b=node('button',cls,text);b.type='button';b.onclick=action;return b;}
- function dispatch(action){
-  state=transitionCoordination(state,action);choice=null;render();
+ const motion=createLearningMotion(root,()=>root().querySelector('#coord-motion-summary'));
+ async function dispatch(action){
+  if(motion.busy)return;
+  const before=state,layout=motion.capture();state=transitionCoordination(state,action);choice=null;render();
+  if(!['restart','done'].includes(action.kind))await motion.play(layout,coordinationChange(action.kind,before,state,coordinationObservation(state)));
+  if(root().hidden)return;
   if(action.kind!=='navigate'){
    const active=root().querySelector('[data-coord-primary]');active?.focus({preventScroll:true});
    if(active){const box=active.getBoundingClientRect();if(box.top<0||box.bottom>innerHeight)active.scrollIntoView({block:'nearest',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});}
@@ -23,6 +27,7 @@ export function createCoordinationUI(){
   if(state.future.length)host.append(node('p','coord-history-note','이전 단계입니다. 새 동작을 하면 이후 진행 결과는 사라집니다.'));
   const instruction=node('h3','coord-instruction',action.instruction);instruction.id='coord-instruction';host.append(instruction);
   const observationBox=node('div','coord-observation');observationBox.setAttribute('role','status');observationBox.append(node('p','',observation[0]),node('span','',`개념 이름 · ${observation[1]}`));host.append(observationBox);
+  const summary=node('div','motion-summary');summary.id='coord-motion-summary';summary.hidden=true;host.append(summary);
   function primary(parent){
    const b=button(action.label,()=>dispatch({kind:action.kind}));b.dataset.coordPrimary=action.kind;parent.append(b);return b;
   }
@@ -34,6 +39,8 @@ export function createCoordinationUI(){
   }
   remote.append(issues);
   const main=node('div','coord-main');main.dataset.coordRecord=`remote:${view.remote.main}`;main.append(node('strong','',`기준본 main · ${view.remote.main}`),node('p','coord-line',view.commits[view.remote.main].line));remote.append(main);
+  const shared=node('div','coord-shared-branches');
+  for(const owner of ['mine','jisu'])if(view.remote.commits.includes(owner==='mine'?'A':'B')){const chip=node('div','coord-shared-branch',`공유한 작업 공간 ${owner==='mine'?'ending':'seven'} · ${view.prs[owner].head}`);chip.dataset.motionKey=`coord:remote:${owner}`;shared.append(chip);}remote.append(shared);
   const prs=node('div','coord-prs');
   for(const owner of ['mine','jisu']){
    const pr=view.prs[owner];if(!pr.exists)continue;
@@ -50,7 +57,7 @@ export function createCoordinationUI(){
   if(prs.children.length)remote.append(prs);
   if(state.step===12)remote.append(node('p','coord-assumption','두 PR의 최초 검토는 끝났다고 가정합니다. 각 PR은 현재 기준본 O와 비교합니다.'));
   if(state.step>=14&&state.step<=16){
-   const resolver=node('section','coord-resolver');resolver.append(node('h4','','같은 파일의 같은 줄 · snow-white.md, 2행'),node('p','coord-original',`공통 시작 O: ${STORY.O}`));
+   const resolver=node('section','coord-resolver');resolver.dataset.motionKey='coord:resolver';resolver.append(node('h4','','같은 파일의 같은 줄 · snow-white.md, 2행'),node('p','coord-original',`공통 시작 O: ${STORY.O}`));
    const versions=node('div','coord-versions');
    for(const [title,id] of [['현재 GitHub 기준본','M1'],['남은 PR의 수정',view.remaining==='mine'?'A':'B']]){
     const c=node('div');c.append(node('strong','',`${title} · ${id}`),node('p','coord-line',view.commits[id].line));versions.append(c);
@@ -90,5 +97,5 @@ export function createCoordinationUI(){
   const help=node('details','guide');help.append(node('summary','','이 실습에서 구분할 개념'));
   for(const text of ['이슈는 해야 할 일을 적는 곳입니다. 담당자를 지정해도 브랜치나 파일은 바뀌지 않습니다.','브랜치는 기록을 가리키는 이름입니다. 같은 기록에서 시작해도 각 브랜치의 변경은 따로 기록합니다.','PR은 작업 브랜치의 변경을 기준 브랜치에 합치도록 요청합니다. PR이 여러 개라는 이유만으로 충돌하지는 않습니다.','이 실습에서는 같은 줄을 다르게 수정합니다. 먼저 합친 PR이 기준본을 바꾸면 남은 PR과 새 기준본이 충돌합니다.','충돌 해결은 GitHub의 편집기에서 진행한다고 가정합니다. 해결 기록은 남은 PR 브랜치에 생깁니다. 각 컴퓨터에는 자동으로 복사되지 않습니다.','지수는 정해진 동작을 보여 주는 가상 인물입니다. 이 실습은 실제 GitHub 저장소를 변경하지 않습니다.'])help.append(node('p','',text));host.append(help);
  }
- return {render};
+ return {render,cancel:motion.cancel};
 }

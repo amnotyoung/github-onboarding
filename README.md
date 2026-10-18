@@ -19,6 +19,12 @@
 
 **3D 기록 참고**는 별도의 10단계 3D 참고 화면입니다. 구슬 클릭, 회전, 확대, 배치 조정을 제공합니다. 기본 2D 실습에는 WebGL이 필요하지 않습니다.
 
+## 변화 애니메이션
+
+브랜치 생성, 새 기록, 기록 공유, 기준본 변경과 PR 충돌을 애니메이션으로 보여 줍니다. 공유할 때 원래 기록은 남고 복사본이 이동합니다. 화면 밖으로 이어지는 변화는 화면 아래의 출발·도착 표시로도 볼 수 있습니다. 변경 설명은 남아 있으며 **변화 다시 보기**로 재생할 수 있습니다.
+
+전환 중에는 다음 동작을 잠시 막습니다. 전환이 끝나면 다음 버튼으로 포커스를 옮깁니다. 화면을 바꾸면 재생을 취소합니다. 운영체제의 모션 감소 설정에서는 이동 없이 변경 위치와 설명을 보여 줍니다.
+
 ## 이슈·충돌 실습
 
 상단의 **이슈·충돌 실습**에서 할 일 두 개를 나와 지수에게 각각 할당합니다. 담당자 지정은 파일이나 브랜치를 만들지 않습니다. 각자 기준본 O에서 별도 브랜치를 만들고 같은 결말 문장을 다르게 수정합니다.
@@ -37,7 +43,7 @@ npm start
 
 `http://localhost:4173/lab.html`을 엽니다. 서버는 정적 파일만 제공하며 방, 참여자, 실시간 동기화 API가 없습니다. 실습 상태는 브라우저 메모리에 있고 새로고침하면 초기화됩니다.
 
-정적 호스팅에도 `lab.html`, `lab.js`, `lab-model.mjs`, `mission-model.mjs`, `mission-ui.mjs`, `collaboration-map.mjs`, `coordination-model.mjs`, `coordination-ui.mjs`, `lab.css`, `assets/`를 함께 올리면 동작합니다. JavaScript 모듈을 사용하므로 `file://` 직접 열기 대신 HTTP 서버를 사용하세요. 3D 참고 화면은 WebGL 2가 필요합니다. Three.js 0.180.0과 OrbitControls를 로컬에 포함해 실행 중 CDN 접속은 필요 없습니다. 라이선스: `assets/vendor/three/LICENSE` (MIT).
+정적 호스팅에도 `lab.html`, `lab.js`, `lab-model.mjs`, `mission-model.mjs`, `mission-ui.mjs`, `collaboration-map.mjs`, `coordination-model.mjs`, `coordination-ui.mjs`, `learning-motion.mjs`, `lab.css`, `assets/`를 함께 올리면 동작합니다. JavaScript 모듈을 사용하므로 `file://` 직접 열기 대신 HTTP 서버를 사용하세요. 3D 참고 화면은 WebGL 2가 필요합니다. Three.js 0.180.0과 OrbitControls를 로컬에 포함해 실행 중 CDN 접속은 필요 없습니다. 라이선스: `assets/vendor/three/LICENSE` (MIT).
 
 ## 검증
 

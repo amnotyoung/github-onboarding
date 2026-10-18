@@ -30,7 +30,7 @@ export function createCollaborationMap({ getContext, activate, selectCommit, can
       const ids=state[repo].commits.filter(id=>id!=='A');
       graph.classList.toggle('single-record',ids.length===1);
       const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 100 100');svg.setAttribute('preserveAspectRatio','none');svg.setAttribute('aria-hidden','true');
-      for(const id of ids)for(const parent of commits[id].parents){if(!ids.includes(parent))continue;const a=positions[parent],b=positions[id];const line=document.createElementNS(svg.namespaceURI,'path');line.setAttribute('d',`M ${a[0]} ${a[1]} C ${(a[0]+b[0])/2} ${a[1]}, ${(a[0]+b[0])/2} ${b[1]}, ${b[0]} ${b[1]}`);line.setAttribute('class',owner(id));svg.append(line);}
+      for(const id of ids)for(const parent of commits[id].parents){if(!ids.includes(parent))continue;const a=positions[parent],b=positions[id];const line=document.createElementNS(svg.namespaceURI,'path');line.setAttribute('d',`M ${a[0]} ${a[1]} C ${(a[0]+b[0])/2} ${a[1]}, ${(a[0]+b[0])/2} ${b[1]}, ${b[0]} ${b[1]}`);line.setAttribute('class',owner(id));line.dataset.edge=`${repo}:${parent}-${id}`;svg.append(line);}
       graph.append(svg);
       for(const id of ids){const node=record(`${repo}:${id}`,true);node.style.left=positions[id][0]+'%';node.style.top=positions[id][1]+'%';graph.append(node);}
       return graph;
