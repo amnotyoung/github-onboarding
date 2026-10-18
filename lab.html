@@ -4,63 +4,30 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
-  <meta name="description" content="나와 지수가 각자 기록을 만들고 합치는 GitHub 협업 실습">
-  <link rel="icon" href="data:,">
+  <meta name="description" content="저장소 복제부터 지수의 검토와 병합, 이슈 할당과 충돌 해결까지 직접 배우는 GitHub 실습">
   <title>GitHub 협업 실습실 — ANY</title>
+  <link rel="icon" href="data:,">
   <link rel="preload" href="assets/fonts/PretendardVariable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="lab.css">
-  <script type="importmap">{"imports":{"three":"./assets/vendor/three/three.module.min.js"}}</script>
 </head>
-<body data-learning-mode="mission">
-  <header class="site-header">
-    <a class="brand-link" href="index.html"><img src="assets/brand/any-logo-mono-reference.jpg" alt="ANY" width="52" height="52"><span>GitHub 온보딩 <span class="header-divider">/</span> <strong>협업 실습실</strong></span></a>
-    <div class="header-actions"><a href="index.html" class="slide-link">슬라이드 보기 ↗</a></div>
-  </header>
+<body>
+  <header class="site-header"><a class="brand" href="index.html"><img src="assets/brand/any-logo-mono-reference.jpg" width="48" height="48" alt="ANY"><span>GitHub 온보딩 <b>협업 실습실</b></span></a><a class="slides-link" href="index.html">슬라이드 보기 ↗</a></header>
   <main>
-    <section class="intro" aria-labelledby="page-title">
-      <div><p class="eyebrow">GITHUB, IN A SHARED SPACE</p><h1 id="page-title">백설공주, 함께 이어쓰기</h1><p class="intro-copy">나와 지수가 백설공주 이야기를 함께 수정하는 실습입니다.</p></div>
-      <p class="session-info">나 + 지수 · 가상 인물</p>
-    </section>
-
-    <div class="learning-toolbar"><div class="learning-modes" aria-label="학습 화면"><button id="mode-mission" aria-pressed="true">2D 협업 지도</button><button id="mode-coordination" aria-pressed="false">이슈·충돌 실습</button><button id="mode-flow" aria-pressed="false">3D 기록 참고</button></div><span>실제 저장소를 변경하지 않는 교육용 실습</span></div>
-    <section id="coordination-lab" aria-label="이슈 할당과 충돌 해결 실습" hidden></section>
-    <div id="basic-lab">
-    <section id="mission-area" class="mission-area" aria-label="협업 미션"><div class="mission-brief"><p><strong>미션</strong> 백설공주가 숲속 집에 도착한 뒤의 이야기를 한 문장 보태세요.</p><div id="mission-roles" aria-label="미션 역할"></div></div><ol id="mission-progress" class="mission-progress" aria-label="미션 진행 상태"></ol></section>
-    <section id="action-focus"><nav id="scene-navigation" aria-label="학습 장면 탐색"><div class="navigation-controls"><button id="scene-back" type="button" aria-label="이전 단계" title="이전 단계">←<span class="navigation-word"> 이전 단계</span></button><select id="scene-jump" aria-label="지나온 장면 선택"></select><button id="scene-forward" type="button" aria-label="다시 앞으로" title="다시 앞으로"><span class="navigation-word">다시 앞으로 </span>→</button></div><p id="navigation-note"></p></nav><h2 id="action-instruction"></h2><p id="action-hint"></p></section><div id="mission-motion-summary" class="motion-summary" hidden></div><div class="lab-layout">
-      <section class="scene-shell" aria-label="저장소와 기록">
-        <div id="collaboration-map" aria-label="내 저장소, 지수의 저장소, GitHub 저장소"></div><div class="scene-top"><span class="scene-title">our-team / <strong>snow-white</strong></span><span class="simulation-tag">교육용 시뮬레이션</span></div>
-        <div id="scene" role="group" aria-label="내 저장소와 GitHub 저장소의 기록을 보여 주는 3D 참고 화면">
-          <div id="loading" role="status">3D 공간을 준비하고 있습니다…</div>
-          <div id="labels"></div>
-        </div>
-        <details id="mission-toolbar"><summary>기록 내용 보기</summary><p id="mission-scene-task"></p><div id="compare-actions"></div></details><div class="scene-bottom"><span class="gesture-hint">배경 드래그 <b>회전</b><span>·</span> 구슬 클릭 <b>내용 보기</b></span><div class="camera-controls" aria-label="시점 조작"><button id="rotate-left" aria-label="시점 왼쪽으로 회전">↶</button><button id="rotate-right" aria-label="시점 오른쪽으로 회전">↷</button><button id="zoom-in" aria-label="확대">＋</button><button id="zoom-out" aria-label="축소">−</button><button id="reset-view">시점 초기화</button></div></div>
-        <div class="repo-status" aria-live="polite"><div><span class="repo-dot local-dot"></span><span>내 컴퓨터</span><strong id="local-status">아직 복제 전</strong></div><div><span class="repo-dot remote-dot"></span><span>GitHub</span><strong id="remote-status">main → B</strong></div></div>
-      </section>
-
-      <aside class="lesson-panel" aria-label="현재 단계 설명">
-        <div class="lesson-content" aria-live="polite"><div class="lesson-meta"><span id="step-count">01 / 10</span><span id="step-location">GitHub</span></div><h2 id="step-title"></h2><p id="step-body"></p><p id="flow-instruction"></p><p id="takeaway"></p></div><div id="mission-actions"></div><p id="mission-message" role="status"></p><details class="technical-details"><summary>명령어와 세부 개념</summary><pre class="command"><code id="command"></code></pre><p>main은 각 저장소의 기준본을 가리키는 브랜치입니다. story는 내 작업 공간의 브랜치입니다. HEAD는 현재 작업 중인 브랜치를 가리킵니다.</p><p>스테이징은 다음 기록에 포함할 파일 내용을 보관하는 영역입니다. PR은 변경 검토와 병합을 요청하는 기능입니다.</p><p>이 실습은 병합 커밋을 만듭니다. 기준본을 받아올 때는 로컬 main에 추가 변경이 없어 fast-forward로 갱신합니다.</p></details>
-        <div class="step-actions"><button id="previous" class="previous-button" aria-label="이전 단계">←</button><button id="next" class="next-button"></button></div>
-        <div class="quiz" id="quiz" hidden><p id="quiz-question"></p><div><button data-answer="yes">네</button><button data-answer="no">아니요</button></div><p id="quiz-feedback" role="status"></p></div>
-        <details id="snapshot-details" class="snapshot-details"><summary>기록한 파일 내용</summary><section class="snapshot" aria-label="선택한 기록"><div class="snapshot-heading"><span id="selected-label">선택한 기록</span><span id="snapshot-id"></span></div><h3 id="snapshot-title"></h3><div class="file-heading"><span>▤ snow-white.md</span><span>기록된 내용</span></div><pre id="file-content"></pre><p id="snapshot-parents"></p></section></details>
-      </aside>
+    <div class="page-heading"><h1>백설공주, 함께 이어쓰기</h1><span class="simulation">교육용 시뮬레이션</span></div>
+    <div class="lesson-tabs" role="tablist" aria-label="실습 선택">
+      <button id="mode-mission" role="tab" aria-selected="true" aria-controls="workshop">2D 협업지도</button>
+      <button id="mode-coordination" role="tab" aria-selected="false" aria-controls="workshop" tabindex="-1">이슈/충돌 실습</button>
+      <button id="mode-combined" role="tab" aria-selected="false" aria-controls="workshop" tabindex="-1">협업+이슈/충돌 실습</button>
     </div>
-
-    <section id="mission-observation" aria-live="polite" hidden><p id="observed-change"></p><span id="concept-name"></span></section>
-    <section id="experiment-result" aria-label="실험 결과 비교" hidden></section>
-    <details id="experiments-details"><summary>다른 방법 실험하기</summary><div id="experiments-options"></div></details>
-    <details id="extra-tools"><summary>개념·명령어·진행 과정 보기</summary><div id="extra-tools-body"></div></details>
-    <nav class="step-rail" id="step-rail" aria-label="실습 단계 선택"></nav>
-    <div class="bottom-note"><p><span class="legend-dot"></span> 구슬 = 커밋 <span class="legend-line"></span> 실선 = 부모 기록 연결 <span class="legend-tag">main</span> 이름표 = 브랜치</p><div class="arrange-controls"><label><input id="arrange-toggle" type="checkbox"> 구슬 배치 조정</label><button id="reset-layout">배치 초기화</button></div></div>
-    <p class="shared-note" id="shared-note">구슬의 위치는 설명을 위한 배치입니다. 움직여도 커밋 내용과 부모 관계는 변하지 않습니다.</p>
-    <details class="guide"><summary>실습 방법 · 개념 참고</summary><div><p>나는 본문을 수정합니다. 지수는 제목을 수정합니다. 지수는 정해진 동작과 의견을 보여 주는 가상 인물입니다.</p><p>각 컴퓨터에 있는 저장소를 로컬 저장소라고 합니다. GitHub 저장소는 기록을 공유하는 원격 저장소입니다. 기록을 공유해도 다른 컴퓨터의 저장소는 자동으로 바뀌지 않습니다.</p><p>현재 안내는 다음에 누를 버튼 하나를 가리킵니다. 기록 버튼은 당시 파일 내용을 보여 줍니다. “이전 단계”와 “다시 앞으로”는 이미 방문한 단계를 보여 줍니다.</p><p>이전 단계에서 새 동작을 하면 이후 진행 결과는 사라집니다. 보기만 하면 기존 결과는 유지됩니다. 페이지를 새로고침하면 실습이 초기화됩니다.</p><p>“3D 기록 참고”는 기록의 연결 관계를 보여 줍니다. 이 화면은 지수의 검토가 완료됐다고 가정합니다. 실제 검토 과정은 “2D 협업 지도”에 있습니다.</p><p>이 실습은 최신 수정 기록에 대한 지수의 승인이 있어야 합칠 수 있습니다. 실제 GitHub의 필수 검토 설정은 저장소마다 다릅니다. 원격 추적 브랜치와 접근 권한 설정은 생략했습니다.</p><p><a href="https://git-scm.com/book/en/v2/Git-Branching-Branches-in-a-Nutshell" target="_blank" rel="noopener noreferrer">브랜치 설명</a> · <a href="https://docs.github.com/en/get-started/using-github/github-flow" target="_blank" rel="noopener noreferrer">GitHub 작업 흐름</a> · <a href="https://docs.github.com/en/get-started/using-git/getting-changes-from-a-remote-repository" target="_blank" rel="noopener noreferrer">기준본 받아오기</a></p></div></details>
-    </div>
+    <div class="lesson-heading"><h2 id="lesson-title"></h2><div class="people"><span><i class="avatar">나</i> 수정·충돌 해결</span><span><i class="avatar jisu">지수</i> 검토·승인·병합</span></div></div>
+    <details class="role-explanation"><summary>이 실습의 역할 설정</summary><p id="role-note"></p><p>지수는 정해진 동작과 의견을 보여 주는 가상 인물입니다.</p></details>
+    <p id="error-message" class="error-message" role="alert" hidden></p>
+    <section id="workshop" role="tabpanel" aria-labelledby="mode-mission"></section>
   </main>
-  <div id="toast" role="status"></div>
-  <dialog id="activity-dialog" class="activity-dialog" aria-labelledby="activity-title"><div class="dialog-heading"><h2 id="activity-title">본문 수정</h2><button id="close-activity" aria-label="수정·검토 창 닫기">×</button></div><div id="activity-body"></div><button id="dialog-back" type="button" class="dialog-back">← 이전 단계로 돌아가기</button></dialog>
-  <dialog id="record-dialog" class="activity-dialog" aria-label="선택한 기록의 내용"><div class="dialog-heading"><h2>기록한 파일 내용</h2><button id="close-record" aria-label="기록 닫기">×</button></div><div id="record-body"></div></dialog>
-
-  <noscript><p class="no-script">협업 실습에는 JavaScript가 필요합니다. <a href="index.html">기존 슬라이드 보기</a></p></noscript>
-  <script>if(location.protocol==='file:'){const warning=document.getElementById('loading');warning.className='error';warning.textContent='이 실습은 웹 서버가 필요합니다. 실행 방법은 README의 실행 항목에 있습니다.';}</script>
+  <dialog id="file-dialog" aria-labelledby="file-title"><div class="dialog-heading"><h2 id="file-title"></h2><button id="file-close" class="close" aria-label="본문 수정 창 닫기">×</button></div><div id="file-body"></div><p class="dialog-instruction">“이 문장 저장하기” 버튼을 누르세요.</p><button id="file-save" class="primary">이 문장 저장하기</button></dialog>
+  <dialog id="record-dialog" aria-labelledby="record-title"><div class="dialog-heading"><h2 id="record-title"></h2><button id="record-close" class="close" aria-label="기록 내용 닫기">×</button></div><p id="record-location"></p><div class="file-name">snow-white.md</div><pre id="record-content"></pre><p id="record-parents"></p></dialog>
+  <dialog id="change-dialog" class="change-dialog" aria-labelledby="change-title"></dialog>
+  <noscript><p>이 실습은 JavaScript가 필요합니다. <a href="index.html">슬라이드 보기</a></p></noscript>
   <script type="module" src="lab.js"></script>
 </body>
 </html>

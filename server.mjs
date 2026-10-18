@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.woff2': 'font/woff2', '.jpg': 'image/jpeg', '.png': 'image/png', '.mp4': 'video/mp4', '.vtt': 'text/vtt; charset=utf-8', '.md': 'text/plain; charset=utf-8', '.txt': 'text/plain; charset=utf-8' };
-const ENTRY_FILES = new Set(['index.html', 'lab.html', 'lab.js', 'lab-model.mjs', 'mission-model.mjs', 'mission-ui.mjs', 'collaboration-map.mjs', 'coordination-model.mjs', 'coordination-ui.mjs', 'learning-motion.mjs', 'lab.css', 'slides.css', 'slides.js', 'demo.css', 'demo.js', 'github-onboarding.md']);
+const ENTRY_FILES = new Set(['index.html', 'lab.html', 'lab.js', 'workshop-model.mjs', 'workshop-ui.mjs', 'workshop-motion.mjs', 'lab.css', 'slides.css', 'slides.js', 'demo.css', 'demo.js', 'github-onboarding.md']);
 
 // The practice runs entirely in the browser; this server only serves public assets.
 export function createLabServer() {
