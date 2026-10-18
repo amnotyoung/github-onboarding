@@ -8,7 +8,7 @@ test('each teammate records locally, pushes separately, and must pull the combin
   const act=(kind,actor=author,data={})=>m=transitionMission(m,{kind,...data},actor);
   act('branch');act('save',author,{choice:'characters'});act('commit');act('push');
   assert.equal(missionNodeVisible('local:C',m),true);assert.equal(missionNodeVisible('remote:C',m),true);assert.equal(missionNodeVisible('peer:C',m),false);
-  assert.throws(()=>act('open-pr'),/동료도/);
+  assert.throws(()=>act('open-pr'),/지수의 작업/);
   act('peer-edit',reviewer);assert.equal(missionNodeVisible('peer:T',m),false);assert.equal(missionScene(m).peer.file,'working');
   act('peer-commit',reviewer);assert.equal(missionNodeVisible('peer:T',m),true);assert.equal(missionNodeVisible('remote:T',m),false);assert.equal(missionNodeVisible('local:T',m),false);
   act('peer-push',reviewer);assert.equal(missionNodeVisible('remote:T',m),true);assert.equal(missionScene(m).remote.main,'B');
@@ -21,7 +21,7 @@ test('experiments change real teaching state, preserve remote history, and resto
   assert.equal(direct.phase, 'brief'); assert.equal(missionScene(direct).local.main, 'X');
   assert.equal(missionScene(direct).remote.main, 'B'); assert.equal(missionNodeVisible('remote:X', direct), false);
   assert.ok(missionCommits(direct).X.lines.length > missionCommits(direct).B.lines.length);
-  assert.throws(() => transitionMission(direct, { kind: 'branch' }, author), /실험을 되돌린/);
+  assert.throws(() => transitionMission(direct, { kind: 'branch' }, author), /실험 되돌리기/);
   const restored = transitionMission(direct, { kind: 'undo-experiment' }, author);
   assert.deepEqual(missionScene(restored), missionScene(original)); assert.equal(restored.experiment, null);
   assert.throws(() => transitionMission(original, { kind: 'try-main' }, reviewer), /작성자/);
@@ -47,9 +47,9 @@ test('review changes the actual snapshot while preserving C and keeping main unc
   for (const draft of Object.keys(DRAFTS)) for (const revision of Object.keys(REVISIONS)) {
     const run = exercise(draft, revision), c = structuredClone(missionCommits(run.state()).C);
     assert.throws(() => run.act('merge'), /승인/);
-    assert.throws(() => run.act('approve', { commit: 'C', checks: ['seven', 'together'] }, reviewer), /지금 할 수 없는/);
+    assert.throws(() => run.act('approve', { commit: 'C', checks: ['seven', 'together'] }, reviewer), /지금은 이 동작/);
     assert.throws(() => run.act('request-changes', { issue: DRAFTS[draft].issue }), /리뷰어/);
-    assert.throws(() => run.act('request-changes', { issue: 'style' }, reviewer), /현재 선택/);
+    assert.throws(() => run.act('request-changes', { issue: 'style' }, reviewer), /선택한 문장/);
     run.act('request-changes', { issue: DRAFTS[draft].issue }, reviewer);
     run.act('revise', { choice: revision });
     assert.equal(missionNodeVisible('local:D', run.state()), false);
@@ -59,8 +59,8 @@ test('review changes the actual snapshot while preserving C and keeping main unc
     run.act('push-revision');
     assert.equal(missionNodeVisible('remote:D', run.state()), true);
     assert.throws(() => run.act('approve', { commit: 'D', checks: ['seven', 'together'] }), /리뷰어/);
-    assert.throws(() => run.act('approve', { commit: 'C', checks: ['seven', 'together'] }, reviewer), /최신/);
-    assert.throws(() => run.act('approve', { commit: 'D', checks: ['seven'] }, reviewer), /모두/);
+    assert.throws(() => run.act('approve', { commit: 'C', checks: ['seven', 'together'] }, reviewer), /수정 기록 D/);
+    assert.throws(() => run.act('approve', { commit: 'D', checks: ['seven'] }, reviewer), /검토 항목/);
     for (const state of run.log) {
       assert.equal(missionScene(state).local.main, 'B'); assert.equal(missionScene(state).remote.main, state.peerStage >= 4 ? 'P' : 'B');
       assert.ok(missionNodeVisible(missionLesson(state).selected, state));
@@ -90,7 +90,7 @@ test('role changes cannot let the original PR author self-approve; solo reviewer
   const handedOff = { ...run.state(), authorId: 'replacement', reviewerId: null };
   assert.throws(() => transitionMission(handedOff, { kind: 'claim-role', role: 'reviewer' }, author), /작성자/);
   const simulated = transitionMission(run.state(), { kind: 'request-changes', issue: 'next-scene' }, author, { solo: true });
-  assert.equal(simulated.conversation.at(-1).name, '지수 · 가상 동료');
+  assert.equal(simulated.conversation.at(-1).name, '지수');
   assert.throws(() => transitionMission(newMission(), { kind: 'save', choice: '__proto__' }, author, { solo: true }));
 });
 
