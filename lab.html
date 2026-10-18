@@ -9,20 +9,33 @@
 <header class="site-header"><a class="brand" href="index.html"><img src="assets/brand/any-logo-mono-reference.jpg" width="32" height="32" alt="ANY"><span>GitHub 협업 실습실</span></a><span class="lesson-name">백설공주, 함께 이어쓰기</span><button id="help-button" class="text-button">역할·개념</button></header>
 <main>
  <div class="lesson-tabs" role="tablist" aria-label="실습 선택"><button id="mode-mission" role="tab" aria-selected="true" aria-controls="workshop">협업 기초</button><button id="mode-coordination" role="tab" aria-selected="false" aria-controls="workshop" tabindex="-1">이슈와 충돌</button><button id="mode-combined" role="tab" aria-selected="false" aria-controls="workshop" tabindex="-1">종합 실습</button></div>
- <p id="error-message" class="error-message" role="alert" hidden></p><section id="workshop" role="tabpanel" aria-labelledby="mode-mission"></section>
+ <p id="error-message" class="error-message" role="alert" hidden></p><section id="workshop" role="tabpanel" aria-labelledby="mode-mission"><p id="load-status" role="status">실습 화면을 불러오고 있습니다.</p></section>
 </main>
 <dialog id="file-dialog" aria-labelledby="file-title"><div class="dialog-heading"><h2 id="file-title"></h2><button id="file-close" class="close" aria-label="본문 수정 창 닫기">×</button></div><div id="file-body"></div><button id="file-save" class="primary">이 문장 저장하기</button></dialog>
 <dialog id="record-dialog" aria-labelledby="record-title"><div class="dialog-heading"><h2 id="record-title"></h2><button id="record-close" class="close" aria-label="기록 내용 닫기">×</button></div><p id="record-location"></p><div class="file-label">snow-white.md</div><pre id="record-content"></pre><p id="record-parents"></p></dialog>
 <dialog id="info-dialog" aria-labelledby="info-title"><div class="dialog-heading"><h2 id="info-title"></h2><button id="info-close" class="close" aria-label="상세 설명 닫기">×</button></div><div id="info-body"></div></dialog>
 <noscript><p>JavaScript를 켜면 실습할 수 있습니다.</p></noscript>
 <script type="module">
- const showLoadError=()=>{
+ const stylesReady=()=>getComputedStyle(document.documentElement).getPropertyValue('--workshop-ready').trim()==='1';
+ const waitForStyles=()=>new Promise((resolve,reject)=>{
+  if(stylesReady()){resolve();return;}
+  const stylesheet=document.getElementById('lab-style');
+  const finish=()=>{
+   stylesheet.removeEventListener('load',finish);stylesheet.removeEventListener('error',finish);window.removeEventListener('load',finish);
+   if(stylesReady())resolve();else reject(new Error('실습 스타일을 불러오지 못했습니다.'));
+  };
+  stylesheet.addEventListener('load',finish,{once:true});stylesheet.addEventListener('error',finish,{once:true});
+  // WebKit can execute this inline module before the stylesheet has arrived.
+  // Window load also covers a stylesheet that failed before listeners were attached.
+  if(document.readyState==='complete')finish();else window.addEventListener('load',finish,{once:true});
+ });
+ const showLoadError=error=>{
+  console.error('실습 초기화 실패',error);document.getElementById('load-status')?.remove();
   const message=document.getElementById('error-message');
-  message.textContent='실습 파일을 불러오지 못했습니다. 미리보기 서버가 켜져 있으면 다시 불러오세요. ';
+  message.textContent='실습 화면을 불러오지 못했습니다. 다시 시도해 주세요. ';
   const retry=document.createElement('button');retry.type='button';retry.textContent='다시 불러오기';retry.onclick=()=>location.reload();
   message.append(retry);message.hidden=false;
  };
- if(getComputedStyle(document.documentElement).getPropertyValue('--workshop-ready').trim()==='1')import('./lab.js').catch(showLoadError);
- else showLoadError();
+ waitForStyles().then(()=>import('./lab.js')).catch(showLoadError);
 </script>
 </body></html>

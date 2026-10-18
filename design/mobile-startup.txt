@@ -1,0 +1,25 @@
+아이폰 / Threads 내장 브라우저 초기화 수정 — 2026-10-19
+
+현상
+- 공개 lab.html이 열리고 헤더·탭·스타일까지 보이지만 실습 영역은 비어 있다.
+- 하단에 ‘실습 파일을 불러오지 못했습니다. 미리보기 서버가 켜져 있으면 다시 불러오세요.’가 표시된다.
+- iPhone 15 규격의 WebKit에서 같은 오류를 재현했다. 페이지 로딩이 끝난 뒤 CSS 표식은 1이지만 lab.js와 하위 모듈은 아예 요청되지 않았다.
+
+원인과 수정
+- 인라인 모듈 실행 시 CSS 표식을 즉시 검사했다. WebKit에서는 CSS 도착 전에 모듈이 실행되어 준비 중인 상태를 실패로 판단했다.
+- 준비된 스타일은 즉시 사용하고, 아직 준비되지 않았으면 stylesheet load/error 이벤트를 기다린다.
+- 이벤트 등록 전 스타일 요청이 끝난 경우는 document.readyState와 window load로 처리한다.
+- CSS가 준비된 뒤 실습 모듈을 import한다. 대기 중에는 로딩 문구를 표시한다.
+- 실패 안내는 공개 사이트에서도 의미가 통하는 문구로 바꾸고, 기술적 오류는 콘솔에 남긴다.
+
+검증
+- npm test: 기존 상태 모델·서버·모션 테스트 9개 통과.
+- tests/browser-startup.js를 Playwright CLI로 실행: WebKit(iPhone 15)과 Chromium에서 각각 6개 확인 통과.
+- 정상 진입, CSS 1.8초 지연, CSS/진입 JS/하위 모듈의 실패 후 재시도, 복제 동작 및 탭별 진행 상태를 확인했다.
+
+재현 명령
+1. PORT=4174 node server.mjs
+2. Playwright CLI에서 WebKit 또는 Chromium 세션을 연다.
+3. run-code에 tests/browser-startup.js의 내용을 전달한다.
+
+실제 Threads 앱을 자동 조작한 검증은 아니다. 사용자의 iPhone Threads 캡처와 같은 오류를 WebKit에서 재현해 수정했다.
