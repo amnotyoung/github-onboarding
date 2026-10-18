@@ -101,3 +101,5 @@ select:focus-visible{outline:3px solid #4b8d80;outline-offset:3px}
   #scene-navigation[data-context=current] #navigation-note{display:none}
   #navigation-note{font-size:11px}
 }
+#flow-instruction{font-size:13px;line-height:1.8;color:#dce8cd;margin-top:14px}
+.activity-dialog .activity-instruction{font-size:14px;color:#e1ebd4;margin-top:18px;line-height:1.7}

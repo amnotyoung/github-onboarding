@@ -57,7 +57,7 @@ async function missionAction(action) {
         if (rect.top < 12 || rect.bottom > innerHeight - 12) next.closest('.map-repo').scrollIntoView({ block: 'nearest', behavior: reducedMotion.matches ? 'instant' : 'smooth' });
       }
     }
-    if (hadFuture && !mission.future.length && !mission.navigation && action.kind !== 'restart') toast('이 장면부터 이후 기록·리뷰·승인을 다시 진행합니다.');
+    if (hadFuture && !mission.future.length && !mission.navigation && action.kind !== 'restart') toast('이 단계 이후의 진행 결과를 지웠습니다.');
   } catch (error) { $('#mission-message').textContent = error.message; if (!$('#activity-dialog').open) toast(error.message); }
   finally { stepPending = false; }
 }
@@ -71,14 +71,14 @@ function toast(message) { $('#toast').textContent = message; clearTimeout(toastT
 function renderSnapshot() {
   if (!nodeVisible(selected)) selected = lessonNow().selected;
   const [repo, id] = selected.split(':'), commit = commitsNow()[id];
-  $('#selected-label').textContent = `${repo === 'local' ? '나의 로컬 저장소' : repo === 'peer' ? '동료의 로컬 저장소' : 'GitHub 공유 저장소'} · 선택한 기록`;
+  $('#selected-label').textContent = `${repo === 'local' ? '내 저장소' : repo === 'peer' ? '지수의 저장소' : 'GitHub 저장소'} · 선택한 기록`;
   $('#snapshot-id').textContent = `${id} / ${commit.hash}`;
   $('#snapshot-title').textContent = commit.title;
   $('#file-content').replaceChildren(...commit.lines.map((line, i) => {
     const span = document.createElement('span'); span.textContent = `${i + 1}  ${line}`;
     if (i >= 2) span.className = 'added'; return span;
   }));
-  $('#snapshot-parents').textContent = commit.parents.length ? `부모 기록: ${commit.parents.join(' + ')}${id === 'M' ? ' · 두 이력을 연결한 병합 커밋' : ''}` : '부모 기록 없음 · 첫 커밋';
+  $('#snapshot-parents').textContent = commit.parents.length ? `부모 기록: ${commit.parents.join(' + ')}${id === 'M' ? ' · 두 이력을 연결한 병합 커밋' : ''}` : '이전 기록 없음 · 첫 기록';
   sceneAPI?.select(selected);
   collaborationMap.select(selected);
 }
@@ -89,7 +89,7 @@ function renderStep() {
   $('#mission-observation').hidden = mode !== 'mission'; $('#experiments-details').hidden = mode !== 'mission'; $('#experiment-result').hidden = mode !== 'mission';
   (mode === 'mission' ? $('#record-body') : snapshotHome).append($('#snapshot-details'));
   (mode === 'mission' ? $('#extra-tools-body') : technicalHome).append($('.technical-details'));
-  $('.scene-title').textContent = mode === 'mission' ? '팀 동화책 실험 공간' : 'our-team / handbook';
+  $('.scene-title').textContent = mode === 'mission' ? '백설공주 협업 실습' : 'our-team / snow-white';
   $('#step-count').textContent = mode === 'mission' ? `MISSION ${missionGroup(mission) + 1} / 7` : `${String(step + 1).padStart(2, '0')} / 10`;
   $('#step-rail').hidden = mode === 'mission'; $('#mission-area').hidden = mode !== 'mission'; $('#mission-toolbar').hidden = mode !== 'mission';
   $('.step-actions').hidden = mode === 'mission'; $('#mission-actions').hidden = mode !== 'mission'; $('#mission-message').hidden = mode !== 'mission';
@@ -98,7 +98,8 @@ function renderStep() {
   $('#step-location').textContent = lesson.location;
   $('#step-title').textContent = lesson.title; $('#step-body').textContent = lesson.body;
   $('#takeaway').textContent = lesson.takeaway; $('#command').textContent = lesson.command;
-  $('#next').textContent = lesson.action || ''; $('#previous').disabled = step === 0;
+  $('#next').textContent = lesson.action || '';
+  $('#flow-instruction').textContent = mode === 'flow' ? `“${lesson.action}” 버튼을 누르세요.` : ''; $('#previous').disabled = step === 0;
   $('#local-status').textContent = state.local.main ? `main → ${state.local.main}${state.local.branch ? ` · story → ${state.local.branch}` : ''}` : '아직 복제 전';
   $('#remote-status').textContent = `main → ${state.remote.main}${state.remote.branch ? ` · story → ${state.remote.branch}` : ''}`;
   $('#quiz').hidden = !lesson.quiz; $('#quiz-question').textContent = lesson.quiz || ''; $('#quiz-feedback').textContent = '';
@@ -113,7 +114,7 @@ function renderStep() {
   $('#collaboration-map').hidden = mode !== 'mission';
   renderNavigation();
   renderSnapshot();
-  $('#shared-note').textContent = '지수는 정해진 시나리오로 작업하고 리뷰하는 가상 동료입니다. 실제 GitHub 저장소를 변경하지 않습니다.';
+  $('#shared-note').textContent = mode === 'mission' ? '지수는 정해진 동작과 의견을 보여 주는 가상 인물입니다. 실습은 실제 GitHub 저장소를 변경하지 않습니다.' : '구슬 위치를 바꿔도 기록 내용과 연결 관계는 바뀌지 않습니다. 검토 과정은 “2D 협업 지도”에서 실습할 수 있습니다.';
 }
 function renderNavigation() {
   $('#scene-navigation').hidden = mode !== 'mission';
@@ -125,7 +126,7 @@ function renderNavigation() {
   $('#scene-jump').disabled = blocked || visited.length < 2;
   $('#scene-jump').replaceChildren(...visited.map((item, i) => { const option = document.createElement('option'); option.value = i; option.textContent = `${String(i + 1).padStart(2, '0')} · ${checkpointLabel(item)}`; return option; }));
   $('#scene-jump').value = index;
-  $('#navigation-note').textContent = mission.experiment ? '실험을 되돌린 뒤 이전 장면으로 이동할 수 있어요.' : (mission.future || []).length ? '이전 장면 · 선택을 바꾸면 뒤의 리뷰·승인을 다시 진행해요.' : '지나온 장면을 다시 보고, 다른 선택도 해볼 수 있어요.';
+  $('#navigation-note').textContent = mission.experiment ? '먼저 “실험 되돌리기” 버튼을 누르세요.' : (mission.future || []).length ? '이전 단계입니다. 새 동작을 하면 이후 진행 결과는 사라집니다.' : '이미 방문한 단계로 이동할 수 있습니다.';
   $('#dialog-back').hidden = mode !== 'mission'; $('#dialog-back').disabled = blocked || index === 0;
 }
 function setStep(next, animate = true) {
@@ -144,7 +145,7 @@ $('#next').onclick = () => goToStep((step + 1) % STEPS.length);
 $('#previous').onclick = () => goToStep(Math.max(0, step - 1));
 document.querySelectorAll('[data-answer]').forEach(button => { button.onclick = () => {
   const lesson = lessonNow(), correct = (button.dataset.answer === 'yes') === lesson.answer;
-  $('#quiz-feedback').textContent = `${correct ? '맞아요. ' : '다시 살펴보세요. '}${lesson.feedback}`;
+  $('#quiz-feedback').textContent = `${correct ? '맞습니다. ' : '다시 확인해 보세요. '}${lesson.feedback}`;
 }; });
 $('#reset-layout').onclick = () => { positions = {}; sceneAPI?.cancelDrag(); sceneAPI?.updatePositions(); };
 $('#mode-mission').onclick = () => changeMode('mission'); $('#mode-flow').onclick = () => changeMode('flow');
@@ -166,7 +167,7 @@ async function initScene() {
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.15;
-  renderer.domElement.setAttribute('aria-label', '강조된 동화책나 기록을 조작하는 3D 장면. 이름표 버튼으로도 같은 동작을 할 수 있습니다.');
+  renderer.domElement.setAttribute('aria-label', '내 저장소와 GitHub 저장소의 기록을 보여 주는 3D 참고 화면');
   host.prepend(renderer.domElement);
   const controls = new OrbitControls(camera, renderer.domElement); controls.enableDamping = !reducedMotion.matches; controls.dampingFactor = 0.09;
   controls.enablePan = false; controls.minDistance = 11; controls.maxDistance = 43; controls.minPolarAngle = 0.12; controls.maxPolarAngle = Math.PI / 2.25;
@@ -224,17 +225,17 @@ async function initScene() {
     label.element.dataset.nodeKey = key;
     const tags = document.createElement('div'); tags.className = 'node-tags';
     const addTag = (name, className) => { const tag = document.createElement('span'); tag.className = className; tag.textContent = name; tags.append(tag); };
-    if (repoState.main === id) addTag(mode === 'mission' ? '지금 쓰는 기준' : 'main', 'branch-tag');
+    if (repoState.main === id) addTag(mode === 'mission' ? '기준본' : 'main', 'branch-tag');
     if (repoState.branch === id) addTag(mode === 'mission' ? '내 작업' : 'story', 'branch-tag feature');
     if (mode === 'flow' && key.startsWith('local:') && repoState[repoState.head === 'main' ? 'main' : 'branch'] === id) addTag(`HEAD → ${repoState.head}`, 'head-tag');
     const button = document.createElement('button'); button.type = 'button'; button.className = 'commit-select';
     const commit = commitsNow()[id];
-    const names = { A: '처음', B: '이전 기록', C: '첫 기록', D: '고친 기록', M: '함께 쓰는 기록', X: '바로 고친 기록' };
+    const names = { A: '처음', B: '이전 기록', C: '첫 기록', D: '고친 기록', M: '합친 기록', X: '바로 고친 기록' };
     const bold = document.createElement('strong'); bold.textContent = mode === 'mission' ? names[id] : id;
     const hash = document.createElement('span'); hash.className = 'hash'; hash.textContent = mode === 'mission' ? '' : commit.hash.slice(0, 5); button.append(bold, hash);
-    button.setAttribute('aria-label', mode === 'mission' ? `${key.startsWith('local:') ? '내' : '팀'} ${names[id]} 내용 보기` : `${key.startsWith('local:') ? '내 컴퓨터' : 'GitHub'} 커밋 ${id}: ${commit.title}`);
+    button.setAttribute('aria-label', mode === 'mission' ? `${key.startsWith('local:') ? '내 저장소의' : 'GitHub 저장소의'} ${names[id]} 내용 보기` : `${key.startsWith('local:') ? '내 컴퓨터' : 'GitHub'} 커밋 ${id}: ${commit.title}`);
     button.onclick = () => selectCommit(key);
-    button.setAttribute('aria-description', '클릭하여 내용 확인. 방향키로 구슬 위치 이동.');
+    button.setAttribute('aria-description', '기록 내용을 보려면 이 버튼을 누르세요. 배치 조정이 켜져 있으면 방향키로 위치를 바꿀 수 있습니다.');
     let keyboardBusy = false;
     button.addEventListener('keydown', async event => {
       const offset = { ArrowLeft: [-.35, 0], ArrowRight: [.35, 0], ArrowUp: [0, -.35], ArrowDown: [0, .35] }[event.key];
@@ -266,7 +267,7 @@ async function initScene() {
       workBook = book(new THREE.Vector3(3.8, .45, 5.5), state.file ? '#c9c768' : '#8d9e57', `local:${state.local.branch}`, commitsNow()[content].lines.length);
       if (animate && mission.lastAction === 'branch' && !reducedMotion.matches) { trayGrowth = { object: tray, start: performance.now(), duration: 650 }; tray.scale.x = .01; }
     }
-    if (early) makeLabel('workspace-label', new THREE.Vector3(-4.65, 1.2, -4.5), '팀이 쓰는 이야기');
+    if (early) makeLabel('workspace-label', new THREE.Vector3(-4.65, 1.2, -4.5), 'GitHub 기준본');
     if (interaction.experiment) { localBook.material.color.set(mission.experiment.type === 'direct-main' ? '#c89256' : '#738a75'); return; }
     if (interaction.source === 'document') actionObject = mission.phase === 'brief' || mission.phase === 'done' ? localBook : workBook;
     else if (interaction.source === 'reviewer') {
@@ -282,7 +283,7 @@ async function initScene() {
     nodeItems.get(interaction.source)?.label.element.classList.add('is-action-source');
     if (interaction.drop) {
       dropTarget = mesh(new THREE.CylinderGeometry(.92, .92, .035, 48), '#c6d587'); dropTarget.position.set(interaction.drop[0], .28, interaction.drop[1]); dropTarget.material.transparent = true; dropTarget.material.opacity = .45;
-      dropLabel = makeLabel('drop-label', new THREE.Vector3(interaction.drop[0], .6, interaction.drop[1]), mission.phase === 'brief' ? '옆에 내 자리 만들기' : mission.phase === 'approved' ? '팀 기준에 반영' : mission.phase === 'merged' ? '내 공간에도 같은 기록' : '팀에도 같은 기록 만들기');
+      dropLabel = makeLabel('drop-label', new THREE.Vector3(interaction.drop[0], .6, interaction.drop[1]), mission.phase === 'brief' ? '내 작업 공간 만들기' : mission.phase === 'approved' ? 'GitHub 기준본에 합치기' : mission.phase === 'merged' ? '내 저장소에 받아오기' : 'GitHub 저장소에 공유하기');
       dropLabel.element.dataset.dropTarget = interaction.kind;
     }
     updateAction();
@@ -300,8 +301,8 @@ async function initScene() {
       const platform = mesh(new THREE.BoxGeometry(12, .25, 5.5), repo === 'local' ? '#e3eacb' : '#d5e6dc'); platform.position.set(0, 0, z);
       const trim = mesh(new THREE.BoxGeometry(12, .035, .08), repo === 'local' ? '#a4b855' : '#72a293'); trim.position.set(0, .14, z + 2.7);
       const mark = mesh(new THREE.BoxGeometry(.1, .04, 4.5), repo === 'local' ? '#d3dfb7' : '#bdd4c7'); mark.position.set(-5.6, .15, z);
-      makeLabel(`repo-label ${repo}`, new THREE.Vector3(3.8, .35, z - 1.85), repo === 'local' ? 'LOCAL / 내 컴퓨터' : 'REMOTE / GitHub');
-      if (!state[repo].commits.length) makeLabel('empty-label', new THREE.Vector3(0, .3, z), 'Clone으로 가져올 공간');
+      makeLabel(`repo-label ${repo}`, new THREE.Vector3(3.8, .35, z - 1.85), repo === 'local' ? '내 저장소' : 'GitHub 저장소');
+      if (!state[repo].commits.length) makeLabel('empty-label', new THREE.Vector3(0, .3, z), '내 저장소를 복제할 위치');
       const visible = mode === 'mission' ? state[repo].commits.filter(id => id !== 'A' && (!['brief', 'draft', 'saved'].includes(mission.phase) || mission.experiment?.type === 'direct-main')) : state[repo].commits;
       for (const id of visible) {
         const color = id === 'C' ? '#a6ba37' : id === 'D' ? '#d7a85d' : id === 'M' ? '#9aab55' : repo === 'local' ? '#5c7352' : '#4d9385';
@@ -314,7 +315,7 @@ async function initScene() {
       paper = new THREE.Group(); paper.position.set(1.3, .5, 4.9); sceneGroup.add(paper);
       for (let i = 0; i < 3; i++) { const sheet = mesh(new THREE.BoxGeometry(1.1, .045, 1.4), i === 2 ? '#ffffed' : '#d6ddbe', paper); sheet.position.set(i * .035, i * .08, 0); }
       for (let i = 0; i < 3; i++) { const line = mesh(new THREE.BoxGeometry(.74, .015, .06), i === 2 ? '#9caf35' : '#bbc5a4', paper); line.position.set(.05, .19, -.35 + i * .3); }
-      makeLabel('paper-label', new THREE.Vector3(1.3, 1.35, 4.9), state.file === 'staged' ? 'Staging · snow-white.md' : '작업 폴더 · snow-white.md');
+      makeLabel('paper-label', new THREE.Vector3(1.3, 1.35, 4.9), state.file === 'staged' ? '스테이징 · snow-white.md' : '작업 폴더 · snow-white.md');
     }
     if (state.pr === 'open') {
       const geometry = new THREE.BufferGeometry().setFromPoints(curveBetween(position(`remote:${state.remote.branch}`), position('remote:B'), 2).getPoints(48));
@@ -380,11 +381,11 @@ async function initScene() {
       const { element, anchor, leader } = label, node = element.classList.contains('node-label');
       if (element.classList.contains('repo-label')) {
         const local = element.classList.contains('local');
-        const text = mode === 'mission' ? local ? '내 컴퓨터' : '함께 보는 공간' : width < 520 ? local ? '내 컴퓨터' : 'GitHub' : local ? 'LOCAL / 내 컴퓨터' : 'REMOTE / GitHub';
+        const text = mode === 'mission' ? local ? '내 컴퓨터' : 'GitHub 저장소' : width < 520 ? local ? '내 컴퓨터' : 'GitHub' : local ? '내 저장소' : 'GitHub 저장소';
         if (element.textContent !== text) element.textContent = text;
       }
       if (element.classList.contains('pr-label')) {
-        const status = mode === 'mission' ? ({ review: '답변 기다리는 중', changes: '수정 의견 도착', revised: '고치는 중', recommitted: '아직 공유 전', reposted: '다시 확인 중', approved: '동료 확인 완료' })[mission.phase] || '확인 중' : '검토 중';
+        const status = mode === 'mission' ? ({ review: '답변 기다리는 중', changes: '수정 의견 도착', revised: '고치는 중', recommitted: '아직 공유 전', reposted: '다시 확인 중', approved: '지수의 승인 완료' })[mission.phase] || '확인 중' : '검토 중';
         element.textContent = mode === 'mission' ? status : width < 520 ? `PR · ${status}` : `PR #12 · story → main · ${status}`;
       }
       const visible = anchor.z >= -1 && anchor.z <= 1 && anchor.x > 0 && anchor.x < width && anchor.y > 0 && anchor.y < height;
@@ -497,7 +498,7 @@ async function initScene() {
       const point = pointOnPlane(event), drag = semanticDrag;
       const accepted = !drag.moved || (drag.drop && point && Math.hypot(point.x - drag.drop[0], point.z - drag.drop[1]) < 1.25);
       cancelSemantic();
-      if (event.type !== 'pointercancel') { if (accepted) await activateScene(); else toast('표시된 자리에 놓아보세요. 아직 내용은 바뀌지 않았어요.'); }
+      if (event.type !== 'pointercancel') { if (accepted) await activateScene(); else toast('내용은 아직 바뀌지 않았습니다. 표시된 자리에 놓으세요.'); }
       return;
     }
     if (!pointerStart || pointerStart.id !== event.pointerId) return;
@@ -508,13 +509,13 @@ async function initScene() {
   addEventListener('blur', () => { cancelDrag(); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) requestRender(); else { cancelDrag(); } });
   reducedMotion.addEventListener('change', () => { controls.enableDamping = !reducedMotion.matches; if (reducedMotion.matches) rebuild(false); requestRender(); });
-  renderer.domElement.addEventListener('webglcontextlost', event => { event.preventDefault(); $('#loading').hidden = false; $('#loading').className = 'error'; $('#loading').textContent = '3D 그래픽 연결이 끊겼습니다. 페이지를 새로고침해 주세요. 단계 설명과 커밋 내용은 계속 볼 수 있습니다.'; });
+  renderer.domElement.addEventListener('webglcontextlost', event => { event.preventDefault(); $('#loading').hidden = false; $('#loading').className = 'error'; $('#loading').textContent = '3D 화면이 멈췄습니다. “2D 협업 지도” 버튼을 누르세요.'; });
   sceneAPI = { rebuild, select, updatePositions, updateLocks, updateAction, cancelDrag, requestRender };
   rebuild(); $('#loading').hidden = true; host.dataset.ready = 'true';
 }
 let sceneInitialization;
 function ensureScene(){if(!sceneInitialization)sceneInitialization=initScene().catch(error => {
   console.error('3D initialization failed:', error);
-  $('#loading').className = 'error'; $('#loading').textContent = '3D 화면을 시작하지 못했습니다. WebGL을 지원하는 브라우저에서 하드웨어 가속을 켜고 다시 열어주세요. 단계별 설명은 오른쪽에서 계속 탐색할 수 있습니다.';
+  $('#loading').className = 'error'; $('#loading').textContent = '3D 화면을 시작할 수 없습니다. “2D 협업 지도” 버튼을 누르세요.';
 });return sceneInitialization;}
 if(mode==='flow')ensureScene();
