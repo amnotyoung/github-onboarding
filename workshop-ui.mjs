@@ -1,7 +1,7 @@
 import {MODES,ROLE_NOTE,TEXT,currentStep,workshopTimeline,prStatus,observation,documentLines,fileEdit} from './workshop-model.mjs';
 const node=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n;};
 const names={B:'처음',C:'초안',D:'수정',H:'결말',M:'합침',M1:'이야기 합침',R:'해결',M2:'모두 합침'};
-const coords={B:[7,48],C:[29,18],D:[48,18],H:[29,78],M1:[67,18],R:[74,78],M2:[93,48],M:[86,48]};
+const coords={B:[7,48],C:[25,18],D:[46,18],H:[29,78],M1:[67,18],R:[74,78],M2:[93,48],M:[86,48]};
 export function createWorkshopUI({getState,dispatch,openFile,openRecord}){
  function button(text,click,cls='primary'){const b=node('button',cls,text);b.type='button';b.onclick=click;return b;}
  function render(){
@@ -10,8 +10,8 @@ export function createWorkshopUI({getState,dispatch,openFile,openRecord}){
   document.querySelector('#role-note').textContent=ROLE_NOTE;
   for(const [id,mode] of Object.entries(MODES)){const b=document.querySelector(`#mode-${id}`);b.setAttribute('aria-selected',String(s.mode===id));b.tabIndex=s.mode===id?0:-1;}
   const nav=node('nav','lesson-nav');nav.setAttribute('aria-label','학습 단계 탐색');
-  const back=button('← 이전 단계',()=>dispatch({type:'navigate',index:s.history.length-1}),'secondary');back.id='step-back';back.disabled=!s.history.length;
-  const forward=button('다시 앞으로 →',()=>dispatch({type:'navigate',index:s.history.length+1}),'secondary');forward.id='step-forward';forward.disabled=!s.future.length;
+  const back=button('← 이전 단계',()=>dispatch({type:'navigate',index:s.history.length-1}),'secondary');back.id='step-back';back.setAttribute('aria-label','이전 단계');back.textContent='←';back.append(node('span','nav-word',' 이전 단계'));back.disabled=!s.history.length;
+  const forward=button('다시 앞으로 →',()=>dispatch({type:'navigate',index:s.history.length+1}),'secondary');forward.id='step-forward';forward.setAttribute('aria-label','다시 앞으로');forward.replaceChildren(node('span','nav-word','다시 앞으로 '),document.createTextNode('→'));forward.disabled=!s.future.length;
   const jump=node('select');jump.id='step-jump';jump.setAttribute('aria-label','지나온 단계 선택');
   workshopTimeline(s).forEach((frame,i)=>{const o=node('option','',`${i+1} · ${currentStep(frame).title}`);o.value=i;jump.append(o);});jump.value=s.history.length;jump.disabled=workshopTimeline(s).length===1;jump.onchange=()=>dispatch({type:'navigate',index:Number(jump.value)});nav.append(back,jump,forward);root.append(nav);
   if(s.future.length)root.append(node('p','history-note','이전 단계입니다. 새 동작을 하면 이후 진행 결과는 다시 만듭니다.'));
@@ -76,7 +76,7 @@ export function createWorkshopUI({getState,dispatch,openFile,openRecord}){
   const locals=node('div','local-repos');
   for(const who of ['mine','jisu']){const r=s.repos[who],card=node('section',`repo local ${who}${step.zone===who?' active':''}`);card.dataset.repo=who;card.dataset.exists=String(Boolean(r));
    card.append(node('p','eyebrow',who==='mine'?'수정·충돌 해결':'검토·승인·병합 담당'),node('h3','',who==='mine'?'내 컴퓨터':'지수의 컴퓨터'));
-   if(!r){const empty=node('div','empty-repo');empty.dataset.motionKey=`${who}:empty`;empty.append(node('span','folder-icon','▱'),node('strong','','로컬 저장소 없음'),node('p','','아직 프로젝트 폴더와 .git 폴더가 없습니다.'));card.append(empty);}
+   if(!r){if(step.zone===who)primary(card);const empty=node('div','empty-repo');empty.dataset.motionKey=`${who}:empty`;empty.append(node('span','folder-icon','▱'),node('strong','','로컬 저장소 없음'),node('p','','아직 프로젝트 폴더와 .git 폴더가 없습니다.'));card.append(empty);}
    else{
     const folder=node('div','project-folder');folder.dataset.motionKey=`${who}:folder`;folder.append(node('h4','folder-title','▱ snow-white/'));
     const git=node('div','git-folder');git.append(node('p','file-name','.git/ · Git 관리 정보'),main(who,r.main));
@@ -85,7 +85,7 @@ export function createWorkshopUI({getState,dispatch,openFile,openRecord}){
     const file=node('div','working-file');file.dataset.motionKey=`${who}:file`;file.append(node('p','file-name',`snow-white.md · 3번째 줄 · 현재 ${r.active}`),node('p','story-line',r.working),node('small','file-state',r.dirty?'파일 저장됨 · 새 기록은 아직 없음':'기록한 내용과 같음'));folder.append(file);card.append(folder);
     card.append(node('p','sync-note',r.main===s.remote.main?'GitHub 기준본과 같습니다.':`${who==='mine'?'내':'지수의'} 기준본은 ${r.main}, GitHub 기준본은 ${s.remote.main}입니다.`));
    }
-   if(step.zone===who)primary(card);locals.append(card);
+   if(r&&step.zone===who)primary(card);locals.append(card);
   }map.append(locals);root.append(map);
   const reference=node('details','reference');reference.append(node('summary','','개념과 실습 범위 보기'));
   for(const text of ['B, C, D 등은 파일 이름이 아니라 기록 이름입니다. 각 기록은 그때의 파일 내용을 보관합니다.','복제는 프로젝트 폴더와 .git을 만듭니다. 브랜치는 별도 폴더를 만들지 않고 기존 기록을 가리킵니다.',MODES[s.mode].issues?'지수는 모든 PR을 검토하고 합칩니다. 두 PR은 내가 서로 다른 작업 브랜치에서 작성합니다.':'PR의 작성자는 나입니다. 지수는 수정 내용을 검토하고 기준본에 합칩니다.','이슈 할당은 담당자를 정하는 일입니다. 파일이나 브랜치를 자동으로 만들지 않습니다.','충돌은 PR의 개수 때문에 생기는 것이 아닙니다. 이 실습에서는 같은 줄의 서로 다른 변경을 합칠 때 충돌합니다.','충돌 해결은 GitHub 편집기에서 진행하는 사례입니다. 해결 기록 R은 GitHub의 happy 브랜치에 생깁니다.','실습은 실제 GitHub 저장소를 바꾸지 않습니다. 탭별 진행 상태는 별도로 유지되며 새로고침하면 초기화됩니다.'])reference.append(node('p','',text));root.append(reference);
