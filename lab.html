@@ -22,7 +22,7 @@
   const retry=document.createElement('button');retry.type='button';retry.textContent='다시 불러오기';retry.onclick=()=>location.reload();
   message.append(retry);message.hidden=false;
  };
- if(document.getElementById('lab-style').sheet)import('./lab.js').catch(showLoadError);
+ if(getComputedStyle(document.documentElement).getPropertyValue('--workshop-ready').trim()==='1')import('./lab.js').catch(showLoadError);
  else showLoadError();
 </script>
 </body></html>
