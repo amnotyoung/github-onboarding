@@ -1,8 +1,8 @@
 // One repository and one named reviewer are used across all three lesson modes.
 export const MODES = {
-  mission: { label: '2D 협업지도', title: '내 변경을 지수가 검토하고 합칩니다', issues: false, feedback: true, expanded:false },
-  coordination: { label: '이슈/충돌 실습', title: '두 PR의 변경이 같은 줄에서 만납니다', issues: true, feedback: false, expanded:false },
-  combined: { label: '협업+이슈/충돌 실습', title: '할 일부터 검토와 충돌 해결까지 이어갑니다', issues: true, feedback: true, expanded:true },
+  mission: { label: '협업 기초', title: '내 변경을 지수가 검토하고 합칩니다', issues: false, feedback: true, expanded:false },
+  coordination: { label: '이슈와 충돌', title: '두 PR의 변경이 같은 줄에서 만납니다', issues: true, feedback: false, expanded:false },
+  combined: { label: '종합 실습', title: '할 일부터 검토와 충돌 해결까지 이어갑니다', issues: true, feedback: true, expanded:true },
 };
 export const TEXT = {
   base: '백설공주는 그 집에서 지냈습니다.',
@@ -12,7 +12,7 @@ export const TEXT = {
   resolved: '백설공주는 일곱 난쟁이와 그 집에서 행복하게 살았습니다.',
   proposal: '신데렐라는 왕자와 무도회에 갔습니다.',
 };
-export const ROLE_NOTE = '나는 파일을 수정해 PR을 만듭니다. 지수는 검토·병합을 맡고, 충돌이 생기면 자기 컴퓨터에서 해결해 공유합니다. 통합 실습에서는 민수의 제안을 병합 없이 닫는 경우도 봅니다.';
+export const ROLE_NOTE = '나는 파일을 수정해 PR을 만듭니다. 지수는 검토·병합을 맡고, 충돌이 생기면 자기 컴퓨터에서 해결해 공유합니다. 종합 실습에서는 민수의 제안을 병합 없이 닫는 경우도 봅니다.';
 const spec = (id,label,title,zone,concept) => ({id,label,title,zone,concept});
 const STEPS = {
   'assign-story': spec('assign-story','지수가 이야기 이슈를 내게 할당하기','이야기 이슈 할당','issues','이슈 할당 · assignee'),
