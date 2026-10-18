@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { newMission, transitionMission, missionScene, missionCommits, DRAFTS, REVISIONS, missionNodeVisible, missionLesson, missionTimeline } from '../mission-model.mjs';
-import { createLabServer } from '../server.mjs';
 
 const author = { id: 'author', name: '민지' }, reviewer = { id: 'reviewer', name: '준호' };
 test('each teammate records locally, pushes separately, and must pull the combined result', () => {
@@ -116,40 +115,4 @@ test('visited scenes support back and forward without losing choices, conversati
   assert.equal(missionNodeVisible('remote:D', changed), false); assert.equal(missionNodeVisible('remote:M', changed), false);
   assert.throws(() => transitionMission(changed, { kind: 'merge' }, author), /승인/);
   assert.equal(missionTimeline(changed).length, 3);
-});
-
-test('room server enforces roles, mission progression, stale actions, and current-commit approval', async t => {
-  const server = createLabServer(); await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  t.after(async () => { server.closeRooms(); await new Promise(resolve => server.close(resolve)); });
-  const base = `http://127.0.0.1:${server.address().port}`;
-  async function post(url, data, token) {
-    const response = await fetch(base + url, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(data) });
-    return { status: response.status, data: await response.json() };
-  }
-  const id = (await post('/api/rooms', {})).data.room;
-  const a = (await post(`/api/rooms/${id}/join`, { name: '민지' })).data;
-  const b = (await post(`/api/rooms/${id}/join`, { name: '준호' })).data;
-  let revision = 0;
-  const act = async (user, action, status = 200) => {
-    const response = await post(`/api/rooms/${id}/action`, { type: 'mission', action, revision }, user.token);
-    assert.equal(response.status, status, response.data.error); if (status === 200) revision++; return response;
-  };
-  await act(b, { kind: 'branch' }, 403);
-  await act(a, { kind: 'claim-role', role: 'reviewer' }, 403);
-  await act(b, { kind: 'claim-role', role: 'reviewer' });
-  await act(a, { kind: 'branch' }); await act(a, { kind: 'save', choice: 'characters' });
-  const stale = await post(`/api/rooms/${id}/action`, { type: 'mission', action: { kind: 'commit' }, revision: 0 }, a.token); assert.equal(stale.status, 409);
-  const skip = await post(`/api/rooms/${id}/action`, { type: 'step', step: 8, revision }, a.token); assert.equal(skip.status, 409);
-  await act(a, { kind: 'commit' }); await act(a, { kind: 'push' });
-  await act(a, { kind: 'peer-edit' }, 403); await act(b, { kind: 'peer-edit' }); await act(b, { kind: 'peer-commit' }); await act(b, { kind: 'peer-push' }); await act(b, { kind: 'peer-merge' }, 403); await act(a, { kind: 'peer-merge' }); await act(a, { kind: 'open-pr' });
-  await act(a, { kind: 'merge' }, 409);
-  await act(b, { kind: 'request-changes', issue: 'next-scene' });
-  await act(b, { kind: 'revise', choice: 'two' }, 403);
-  await act(a, { kind: 'revise', choice: 'two' }); await act(a, { kind: 'commit-revision' }); await act(a, { kind: 'push-revision' });
-  await act(a, { kind: 'approve', commit: 'D', checks: ['seven', 'together'] }, 403);
-  await act(b, { kind: 'approve', commit: 'C', checks: ['seven', 'together'] }, 409);
-  await act(b, { kind: 'approve', commit: 'D', checks: ['seven', 'together'] }); await act(a, { kind: 'merge' }); await act(a, { kind: 'pull' }); await act(b, { kind: 'peer-pull' });
-  const resumed = (await post(`/api/rooms/${id}/join`, { name: '민지', resumeToken: a.token })).data;
-  assert.equal(resumed.state.mission.phase, 'done'); assert.equal(resumed.state.mission.approval.reviewerId, b.userId);
-  assert.equal(resumed.state.mission.conversation[1].name, '준호');
 });

@@ -7,21 +7,13 @@ export function createMissionUI({ dispatch, getContext, selectCommit }) {
     const node = el('button', className, text); node.type = 'button';
     node.onclick = async () => { node.disabled = true; try { await action(); } finally { if (node.isConnected) node.disabled = false; } }; return node;
   }
-  function renderRoles() {
-    const { mission, room, users } = getContext(), root = $('#mission-roles'); root.replaceChildren(); root.hidden = !room;
-    if (!room) return;
-    for (const role of ['author', 'reviewer']) {
-      const owner = users.find(user => user.id === mission[`${role}Id`]), label = role === 'author' ? '본문 담당' : '제목 담당';
-      const control = button(`${label} · ${owner ? `${owner.name}${owner.id === room.userId ? ' (나)' : ''}${owner.connected ? '' : ' · 연결 끊김'}` : '맡기'}`, () => dispatch({ kind: 'claim-role', role }), 'role-button');
-      control.disabled = Boolean(owner?.connected); control.setAttribute('aria-pressed', String(owner?.id === room.userId)); root.append(control);
-    }
-  }
+  function renderRoles() { $('#mission-roles').hidden = true; }
   function render() {
-    const { mission: m, room } = getContext(), root = $('#mission-actions'), commits = missionCommits(m), index = phaseIndex(m), interaction = missionInteraction(m);
-    const canAuthor = !room || room.userId === m.authorId, canReview = !room || room.userId === m.reviewerId;
+    const { mission: m } = getContext(), root = $('#mission-actions'), commits = missionCommits(m), index = phaseIndex(m), interaction = missionInteraction(m);
+    const canAuthor = true, canReview = true;
     root.replaceChildren(); renderRoles();
-    $('#action-instruction').textContent = room && !(interaction.role === 'reviewer' ? canReview : canAuthor) ? `${interaction.role === 'reviewer' ? '동료가 확인하고 답할' : '작업하는 사람이 조작할'} 차례예요. 기록을 눌러 살펴보세요.` : interaction.instruction;
-    $('#action-hint').textContent = !room && interaction.role === 'reviewer' ? '혼자 연습 중입니다. 이번에는 동료의 역할로 조작해 보세요.' : '강조된 저장소에서 다음 동작을 해보세요. 각 로컬은 자동으로 동기화되지 않습니다.';
+    $('#action-instruction').textContent = interaction.instruction;
+    $('#action-hint').textContent = interaction.role === 'reviewer' ? '가상 동료 지수의 작업을 한 단계씩 살펴보세요.' : '강조된 저장소에서 다음 동작을 해보세요. 각 로컬은 자동으로 동기화되지 않습니다.';
     $('#mission-progress').replaceChildren(...MILESTONES.map((name, i) => { const item = el('li', i === missionGroup(m) ? 'current' : i < missionGroup(m) ? 'complete' : '', name); return item; }));
     const observation = missionObservation(m);
     $('#mission-observation').hidden = !observation;
@@ -76,13 +68,9 @@ export function createMissionUI({ dispatch, getContext, selectCommit }) {
     }
     if (m.phase === 'draft') choices('어느 장면부터 보탤까요? 둘 다 이야기에 들어갈 내용이에요.', Object.entries(DRAFTS).map(([id, data]) => [id, data.label, data.line]), '이 내용으로 고치기', 'save');
     if (m.phase === 'changes') choices('고칠 내용', Object.entries(REVISIONS).map(([id, data]) => [id, data.label, data.lines.join(' ')]), '이 내용으로 다시 고치기', 'revise');
-    if (m.phase === 'review' && room && canReview) {
-      root.append(el('p', 'suggested-review', DRAFTS[m.draft].review));
-      root.append(button('이 의견 보내기', () => dispatch({ kind: 'request-changes', issue: DRAFTS[m.draft].issue })));
-    }
     if (m.phase === 'reposted' && canReview) {
       const checked = new Set(), fieldset = el('fieldset', 'review-checks'); fieldset.append(el('legend', '', '함께 읽고 확인해 보세요'));
-      const approve = button(room ? '확인했어요, 반영해도 좋아요' : '가상 동료의 확인 받기', () => dispatch({ kind: 'approve', commit: 'D', checks: [...checked] })); approve.disabled = true;
+      const approve = button('가상 동료의 확인 받기', () => dispatch({ kind: 'approve', commit: 'D', checks: [...checked] })); approve.disabled = true;
       for (const [id, text] of [['seven', '일곱 난쟁이가 등장해요'], ['together', '함께 살게 되는 장면으로 이어져요']]) {
         const label = el('label'), input = el('input'); input.type = 'checkbox'; input.value = id; input.onchange = () => { input.checked ? checked.add(id) : checked.delete(id); approve.disabled = checked.size !== 2; }; label.append(input, el('span', '', text)); fieldset.append(label);
       }

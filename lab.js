@@ -7,9 +7,7 @@ const $ = selector => document.querySelector(selector);
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const initialStep = Number(new URLSearchParams(location.hash.slice(1)).get('step') || 0);
 let step = getState(initialStep).step, positions = {}, selected = STEPS[step].selected;
-let room = null, roomId = new URLSearchParams(location.search).get('room'), revision = 0;
-let users = [], locks = {}, connected = false, eventStream = null, serverConfig = null;
-let sceneAPI = null, stepPending = false, toastTimer, peerCursors = new Map();
+let sceneAPI = null, stepPending = false, toastTimer;
 let mode = new URLSearchParams(location.search).get('mode') === 'flow' ? 'flow' : 'mission', mission = newMission();
 let arrange = mode === 'flow';
 const lessonNow = () => mode === 'mission' ? missionLesson(mission) : STEPS[step];
@@ -23,18 +21,15 @@ const selectCommit = key => {
   selected = key; $('#snapshot-details').open = true; renderSnapshot();
   if (mode === 'mission' && !$('#record-dialog').open) $('#record-dialog').showModal();
 };
-const missionUI = createMissionUI({ dispatch: missionAction, getContext: () => ({ mission, room, users }), selectCommit, showMessage: message => { $('#mission-message').textContent = message; } });
-const collaborationMap = createCollaborationMap({getContext:()=>({mission,room,users,selected}),activate:activateScene,selectCommit,canInteract});
+const missionUI = createMissionUI({ dispatch: missionAction, getContext: () => ({ mission }), selectCommit, showMessage: message => { $('#mission-message').textContent = message; } });
+const collaborationMap = createCollaborationMap({getContext:()=>({mission,selected}),activate:activateScene,selectCommit,canInteract});
 
-function canInteract() {
-  if (!room) return true;
-  return connected && room.userId === mission[`${missionInteraction(mission).role}Id`];
-}
+function canInteract() { return true; }
 async function activateScene() {
   if (!canInteract() || stepPending) return;
   const interaction = missionInteraction(mission);
   if (interaction.kind === 'compare') { selectCommit('local:M'); return; }
-  if (interaction.kind === 'edit' || (interaction.kind === 'review' && (room || mission.phase === 'reposted'))) { $('#activity-dialog').showModal(); return; }
+  if (interaction.kind === 'edit' || (interaction.kind === 'review' && mission.phase === 'reposted')) { $('#activity-dialog').showModal(); return; }
   if (interaction.kind === 'review') {
     await missionAction({ kind: 'request-changes', issue: DRAFTS[mission.draft].issue });
     if (mission.phase === 'changes') $('#activity-dialog').showModal(); return;
@@ -48,22 +43,18 @@ function afterMissionChange(previousPhase) {
 async function missionAction(action) {
   if (stepPending) return; stepPending = true;
   try {
-    if (room) await sendAction({ type: 'mission', action, revision });
-    else {
-      const previousPhase = mission.phase;
-      const hadFuture = (mission.future || []).length > 0;
-      mission = transitionMission(mission, action, { id: 'solo-author', name: '나' }, { solo: true });
-      afterMissionChange(previousPhase);
-      if (['restart', 'navigate'].includes(action.kind)) positions = {};
-      selected = lessonNow().selected; sceneAPI?.rebuild(action.kind !== 'navigate'); renderStep();
-      if (hadFuture && !mission.future.length && !mission.navigation && action.kind !== 'restart') toast('이 장면부터 이후 기록·리뷰·승인을 다시 진행합니다.');
-    }
+    const previousPhase = mission.phase;
+    const hadFuture = (mission.future || []).length > 0;
+    mission = transitionMission(mission, action, { id: 'solo-author', name: '나' }, { solo: true });
+    afterMissionChange(previousPhase);
+    if (['restart', 'navigate'].includes(action.kind)) positions = {};
+    selected = lessonNow().selected; sceneAPI?.rebuild(action.kind !== 'navigate'); renderStep();
+    if (hadFuture && !mission.future.length && !mission.navigation && action.kind !== 'restart') toast('이 장면부터 이후 기록·리뷰·승인을 다시 진행합니다.');
   } catch (error) { $('#mission-message').textContent = error.message; if (!$('#activity-dialog').open) toast(error.message); }
   finally { stepPending = false; }
 }
 async function changeMode(nextMode) {
   if (mode === nextMode) return;
-  if (room) { try { await sendAction({ type: 'mode', mode: nextMode, revision }); } catch (error) { toast(error.message); } return; }
   mode = nextMode; positions = {}; arrange = mode === 'flow'; selected = lessonNow().selected;
   $('#snapshot-details').open = mode === 'flow'; sceneAPI?.rebuild(); renderStep(); if(mode==='flow')ensureScene();
 }
@@ -114,34 +105,25 @@ function renderStep() {
   $('#collaboration-map').hidden = mode !== 'mission';
   renderNavigation();
   renderSnapshot();
-  renderConnection();
+  $('#shared-note').textContent = '지수는 정해진 시나리오로 작업하고 리뷰하는 가상 동료입니다. 실제 GitHub 저장소를 변경하지 않습니다.';
 }
 function renderNavigation() {
   $('#scene-navigation').hidden = mode !== 'mission';
   const visited = missionTimeline(mission), index = (mission.history || []).length;
-  const allowed = !room || (connected && room.userId === mission.authorId);
-  const blocked = !allowed || Boolean(mission.experiment);
+  const blocked = Boolean(mission.experiment);
   $('#scene-back').disabled = blocked || index === 0;
   $('#scene-forward').disabled = blocked || !(mission.future || []).length;
   $('#scene-jump').disabled = blocked || visited.length < 2;
   $('#scene-jump').replaceChildren(...visited.map((item, i) => { const option = document.createElement('option'); option.value = i; option.textContent = `${String(i + 1).padStart(2, '0')} · ${checkpointLabel(item)}`; return option; }));
   $('#scene-jump').value = index;
-  $('#navigation-note').textContent = mission.experiment ? '실험을 되돌린 뒤 이전 장면으로 이동할 수 있어요.' : !allowed ? '함께 보는 장면은 본문 담당자가 이동합니다.' : (mission.future || []).length ? '이전 장면 · 선택을 바꾸면 뒤의 리뷰·승인을 다시 진행해요.' : '지나온 장면을 다시 보고, 다른 선택도 해볼 수 있어요.';
+  $('#navigation-note').textContent = mission.experiment ? '실험을 되돌린 뒤 이전 장면으로 이동할 수 있어요.' : (mission.future || []).length ? '이전 장면 · 선택을 바꾸면 뒤의 리뷰·승인을 다시 진행해요.' : '지나온 장면을 다시 보고, 다른 선택도 해볼 수 있어요.';
   $('#dialog-back').hidden = mode !== 'mission'; $('#dialog-back').disabled = blocked || index === 0;
 }
 function setStep(next, animate = true) {
   const previous = step; step = getState(next).step; selected = STEPS[step].selected;
   sceneAPI?.rebuild(animate && previous !== step); renderStep();
 }
-async function goToStep(value) {
-  if (stepPending) return;
-  if (!room) { setStep(value); return; }
-  if (!connected) { toast('연결을 복구하고 있습니다. 다시 연결되면 조작할 수 있습니다.'); return; }
-  stepPending = true;
-  try { await sendAction({ type: 'step', step: value, revision }); }
-  catch (error) { toast(error.message); }
-  finally { stepPending = false; }
-}
+function goToStep(value) { if (!stepPending) setStep(value); }
 for (const [i, lesson] of STEPS.entries()) {
   const button = document.createElement('button'); button.type = 'button'; button.dataset.step = i;
   const number = document.createElement('span'); number.textContent = String(i + 1).padStart(2, '0');
@@ -155,135 +137,15 @@ document.querySelectorAll('[data-answer]').forEach(button => { button.onclick = 
   const lesson = lessonNow(), correct = (button.dataset.answer === 'yes') === lesson.answer;
   $('#quiz-feedback').textContent = `${correct ? '맞아요. ' : '다시 살펴보세요. '}${lesson.feedback}`;
 }; });
-$('#reset-layout').onclick = async () => {
-  if (room) { try { await sendAction({ type: 'reset-layout' }); } catch (error) { toast(error.message); } }
-  else { positions = {}; sceneAPI?.cancelDrag(); sceneAPI?.updatePositions(); }
-};
+$('#reset-layout').onclick = () => { positions = {}; sceneAPI?.cancelDrag(); sceneAPI?.updatePositions(); };
 $('#mode-mission').onclick = () => changeMode('mission'); $('#mode-flow').onclick = () => changeMode('flow');
 $('#close-activity').onclick = () => $('#activity-dialog').close(); $('#close-record').onclick = () => $('#record-dialog').close();
 $('#scene-back').onclick = () => missionAction({ kind: 'navigate', index: (mission.history || []).length - 1 });
 $('#scene-forward').onclick = () => missionAction({ kind: 'navigate', index: (mission.history || []).length + 1 });
 $('#scene-jump').onchange = event => missionAction({ kind: 'navigate', index: Number(event.target.value) });
 $('#dialog-back').onclick = () => missionAction({ kind: 'navigate', index: (mission.history || []).length - 1 });
-$('#arrange-toggle').onchange = event => { arrange = event.target.checked; sceneAPI?.cancelDrag(); if (room) sendAction({ type: 'release' }).catch(() => {}); };
+$('#arrange-toggle').onchange = event => { arrange = event.target.checked; sceneAPI?.cancelDrag(); };
 renderStep();
-
-async function api(url, data, auth) {
-  const response = await fetch(url, { method: data === undefined ? 'GET' : 'POST', headers: { ...(data === undefined ? {} : { 'Content-Type': 'application/json' }), ...(auth ? { Authorization: `Bearer ${auth}` } : {}) }, body: data === undefined ? undefined : JSON.stringify(data) });
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    if (result.state) applyRoomState(result.state);
-    const error = new Error(result.error || '실시간 서버에 연결할 수 없습니다. npm start로 서버를 실행해 주세요.'); error.status = response.status; throw error;
-  }
-  return result;
-}
-async function sendAction(action) {
-  if (!room || !connected) throw new Error('실시간 연결이 끊겼습니다. 연결 복구 후 다시 시도해 주세요.');
-  return api(`/api/rooms/${room.id}/action`, action, room.token);
-}
-function renderConnection() {
-  $('#connection-dot').className = `connection-dot${room ? connected ? ' live' : ' reconnecting' : ''}`;
-  $('#connection-label').textContent = room ? connected ? `${users.filter(u => u.connected).length}명 함께 탐색 중` : '연결 복구 중…' : '혼자 탐색 중';
-  $('#room-button').textContent = room ? '초대 링크 공유 ↗' : '함께 조작하기 ↗';
-  $('#participants').replaceChildren(...users.filter(u => u.connected).map(user => {
-    const item = document.createElement('span'); item.className = 'participant'; item.style.setProperty('--participant-color', user.color);
-    item.textContent = user.name.slice(0, 1); item.title = `${user.name}${user.id === room?.userId ? ' (나)' : ''}`; item.setAttribute('aria-label', item.title); return item;
-  }));
-  $('#shared-note').textContent = mode === 'mission' ? room ? '다른 기기에서도 같은 변화가 보입니다. 시점은 각자 조작할 수 있어요.' : '혼자 할 때 지수는 가상 동료입니다. 함께 접속하면 실제 동료와 주고받을 수 있어요.' : '구슬의 위치는 설명을 위한 배치입니다. 위치를 바꿔도 커밋 내용과 부모 관계는 변하지 않습니다.';
-  if (mode === 'mission') missionUI.renderRoles();
-  if (mode === 'mission') collaborationMap.updateAvailability();
-  renderNavigation();
-}
-function applyRoomState(state) {
-  const modeChanged = state.mode !== mode, missionChanged = JSON.stringify(state.mission) !== JSON.stringify(mission), changed = state.step !== step;
-  revision = state.revision; positions = state.positions; users = state.users; locks = state.locks;
-  const previousPhase = mission.phase;
-  const hadFuture = (mission.future || []).length > 0;
-  mode = state.mode; mission = state.mission; afterMissionChange(previousPhase);
-  if (modeChanged) { arrange = mode === 'flow'; $('#snapshot-details').open = mode === 'flow'; }
-  for (const [id, cursor] of peerCursors) if (!users.some(u => u.id === id && u.connected)) { cursor.element.remove(); peerCursors.delete(id); }
-  if (modeChanged || (mode === 'mission' && missionChanged)) { step = state.step; selected = lessonNow().selected; sceneAPI?.rebuild(!mission.navigation); renderStep(); }
-  else if (changed && mode === 'flow') { sceneAPI?.cancelDrag(); setStep(state.step); }
-  else { sceneAPI?.updatePositions(); sceneAPI?.updateLocks(); }
-  renderConnection();
-  if (mode === 'mission') collaborationMap.render();
-  if (mode === 'flow') ensureScene();
-  sceneAPI?.updateAction();
-  if (hadFuture && !mission.future.length && !mission.navigation && mission.lastAction !== 'restart') toast('이 장면부터 이후 기록·리뷰·승인을 다시 진행합니다.');
-}
-function showPeerCursor(data) {
-  if (data.userId === room?.userId) return;
-  const user = users.find(item => item.id === data.userId); if (!user) return;
-  let cursor = peerCursors.get(user.id);
-  if (!data.position) { if (cursor) cursor.element.hidden = true; return; }
-  if (!cursor) {
-    const element = document.createElement('div'); element.className = 'peer-cursor'; element.style.setProperty('--peer-color', user.color);
-    element.append(document.createTextNode('↖')); const label = document.createElement('span'); label.textContent = user.name; element.append(label);
-    $('#presence-layer').append(element); cursor = { element, position: data.position }; peerCursors.set(user.id, cursor);
-  }
-  cursor.position = data.position; cursor.element.hidden = false; sceneAPI?.requestRender();
-}
-async function joinRoom(id, name, resumeToken) {
-  const result = await api(`/api/rooms/${id}/join`, { name, resumeToken });
-  room = { id, name, userId: result.userId, token: result.token }; roomId = id;
-  const url = new URL(location.href); url.searchParams.set('room', id); history.replaceState(null, '', url);
-  connected = false; applyRoomState(result.state);
-  eventStream?.close(); eventStream = new EventSource(`/api/rooms/${id}/events?token=${encodeURIComponent(result.token)}`);
-  eventStream.addEventListener('state', event => { connected = true; applyRoomState(JSON.parse(event.data)); });
-  eventStream.addEventListener('cursor', event => showPeerCursor(JSON.parse(event.data)));
-  eventStream.addEventListener('notice', event => { const data = JSON.parse(event.data); if (data.userId !== room?.userId) toast(data.text); });
-  eventStream.onopen = () => { connected = true; renderConnection(); };
-  eventStream.onerror = () => { connected = false; sceneAPI?.cancelDrag(); renderConnection(); };
-  updateRoomDialog();
-}
-addEventListener('offline', () => {
-  if (!room) return;
-  eventStream?.close(); connected = false; sceneAPI?.cancelDrag(); renderConnection();
-});
-addEventListener('online', () => {
-  if (!room) return;
-  joinRoom(room.id, room.name, room.token).catch(error => toast(error.message));
-});
-function updateRoomDialog() {
-  $('#join-form').hidden = Boolean(room); $('#share-area').hidden = !room;
-  $('#join-button').textContent = roomId ? '이 방에 참여하기' : '방 만들기';
-  $('#room-description').textContent = room ? '참여한 사람이 ‘확인하는 동료 · 맡기’를 눌러 의견과 확인을 보낼 수 있습니다. 방 링크를 가진 사람은 누구나 참여할 수 있습니다.' : roomId ? '이름을 입력해 참여하세요. 작성자·리뷰어·관찰자로 같은 미션을 진행합니다.' : '방을 만들면 새 협업 미션이 시작됩니다. 링크로 참여한 동료가 리뷰어를 맡아주세요.';
-  if (room) {
-    const link = new URL(location.href);
-    if (['localhost', '127.0.0.1', '[::1]'].includes(link.hostname) && serverConfig?.lanOrigin) {
-      const lan = new URL(serverConfig.lanOrigin); link.hostname = lan.hostname; link.port = lan.port;
-    }
-    link.hash = ''; $('#share-url').value = link.href;
-  }
-}
-$('#room-button').onclick = () => { $('#room-error').textContent = ''; updateRoomDialog(); $('#room-dialog').showModal(); };
-$('#close-room').onclick = () => $('#room-dialog').close();
-$('#join-form').onsubmit = async event => {
-  event.preventDefault(); $('#join-button').disabled = true; $('#room-error').textContent = '';
-  try {
-    serverConfig = await api('/api/config');
-    if (!roomId) { const result = await api('/api/rooms', { step, mode }); roomId = result.room; }
-    await joinRoom(roomId, $('#display-name').value.trim());
-  } catch (error) {
-    if (error.status === 404 && roomId) {
-      roomId = null; const url = new URL(location.href); url.searchParams.delete('room'); history.replaceState(null, '', url); updateRoomDialog();
-      $('#room-error').textContent = `${error.message} 아래 버튼으로 새 방을 만들 수 있습니다.`;
-    } else $('#room-error').textContent = error.message;
-  }
-  finally { $('#join-button').disabled = false; }
-};
-$('#copy-link').onclick = async () => {
-  try { await navigator.clipboard.writeText($('#share-url').value); $('#copy-link').textContent = '복사됨'; setTimeout(() => { $('#copy-link').textContent = '복사'; }, 1800); }
-  catch { $('#share-url').select(); toast('링크를 선택했습니다. 복사해서 전달해 주세요.'); }
-};
-$('#leave-room').onclick = async () => {
-  try { await sendAction({ type: 'leave' }); } catch { /* Leaving is always possible locally. */ }
-  eventStream?.close(); eventStream = null; room = null; roomId = null; connected = false; users = []; locks = {};
-  sceneAPI?.cancelDrag(); peerCursors.forEach(cursor => cursor.element.remove()); peerCursors.clear();
-  const url = new URL(location.href); url.searchParams.delete('room'); history.replaceState(null, '', url);
-  renderStep(); sceneAPI?.updateLocks(); $('#room-dialog').close();
-};
-if (roomId) { updateRoomDialog(); $('#room-dialog').showModal(); }
 
 async function initScene() {
   const THREE = await import('three');
@@ -308,7 +170,7 @@ async function initScene() {
   const grid = new THREE.GridHelper(60, 60, '#c2ccb5', '#cbd4bf'); grid.position.y = -0.39; grid.material.transparent = true; grid.material.opacity = 0.28; scene.add(grid);
   const sceneGroup = new THREE.Group(); scene.add(sceneGroup);
   const nodeItems = new Map(), labels = [], edges = [], selectable = [];
-  let paper = null, prLine = null, packet = null, animation = null, frame = 0, dragging = null, pointerStart = null, lastCursor = 0, lastMove = 0, moveTask = null, queuedMove = null, finishingDrag = false;
+  let paper = null, prLine = null, packet = null, animation = null, frame = 0, dragging = null, pointerStart = null;
   let actionObject = null, actionLabel = null, dropTarget = null, dropLabel = null, semanticDrag = null, creation = null, trayGrowth = null;
   const intents = [];
   const raycaster = new THREE.Raycaster(), mouse = new THREE.Vector2(), dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.85);
@@ -369,11 +231,9 @@ async function initScene() {
       const offset = { ArrowLeft: [-.35, 0], ArrowRight: [.35, 0], ArrowUp: [0, -.35], ArrowDown: [0, .35] }[event.key];
       if (!offset || !arrange) return; event.preventDefault(); if (keyboardBusy) return; keyboardBusy = true;
       try {
-        if (room) await sendAction({ type: 'grab', key });
         const p = position(key), local = key.startsWith('local:');
         const moved = { x: THREE.MathUtils.clamp(p.x + offset[0], -5.2, 5.2), z: THREE.MathUtils.clamp(p.z + offset[1], local ? 1.4 : -6.2, local ? 6.2 : -1.4) };
-        if (room) { await sendAction({ type: 'move', key, position: moved }); await sendAction({ type: 'release' }); }
-        else { positions[key] = moved; updatePositions(); }
+        positions[key] = moved; updatePositions();
       } catch (error) { toast(error.message); }
       finally { keyboardBusy = false; }
     });
@@ -484,15 +344,7 @@ async function initScene() {
     if (prLine) { prLine.geometry.dispose(); prLine.geometry = new THREE.BufferGeometry().setFromPoints(curveBetween(position(`remote:${stateNow().remote.branch}`), position('remote:B'), 2).getPoints(48)); prLine.computeLineDistances(); }
     requestRender();
   }
-  function updateLocks() {
-    for (const [key, item] of nodeItems) {
-      item.tags.querySelector('.lock-tag')?.remove();
-      const user = users.find(user => user.id === locks[key]);
-      if (user) { const tag = document.createElement('span'); tag.className = 'lock-tag'; tag.style.backgroundColor = user.color; tag.textContent = `${user.name} 이동 중`; item.tags.append(tag); }
-    }
-    if (dragging && room && locks[dragging.key] !== room.userId) cancelDrag();
-    requestRender();
-  }
+  function updateLocks() { requestRender(); }
   function pointOnPlane(event) {
     const rect = renderer.domElement.getBoundingClientRect(); mouse.set((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1);
     raycaster.setFromCamera(mouse, camera); const point = new THREE.Vector3(); return raycaster.ray.intersectPlane(dragPlane, point) ? point : null;
@@ -544,7 +396,6 @@ async function initScene() {
         leader.setAttribute('x2', best.x); leader.setAttribute('y2', best.box.bottom);
       }
     }
-    for (const cursor of peerCursors.values()) { const p = screen(new THREE.Vector3(cursor.position.x, .85, cursor.position.z)); cursor.element.style.left = `${p.x}px`; cursor.element.style.top = `${p.y}px`; }
   }
   function tick(time) {
     frame = 0; if (document.hidden) return;
@@ -576,19 +427,10 @@ async function initScene() {
   $('#rotate-left').onclick = () => rotate(-Math.PI / 8); $('#rotate-right').onclick = () => rotate(Math.PI / 8);
   function zoom(factor) { const offset = camera.position.clone().sub(controls.target); const distance = THREE.MathUtils.clamp(offset.length() * factor, controls.minDistance, controls.maxDistance); offset.setLength(distance); camera.position.copy(controls.target).add(offset); controls.update(); requestRender(); }
   $('#zoom-in').onclick = () => zoom(.85); $('#zoom-out').onclick = () => zoom(1.18);
-  function flushMove() {
-    if (moveTask) return moveTask;
-    moveTask = (async () => {
-      try {
-        while (queuedMove && room) { const action = queuedMove; queuedMove = null; await sendAction(action); }
-      } catch (error) { cancelDrag(); toast(error.message); }
-    })().finally(() => { moveTask = null; });
-    return moveTask;
-  }
   function cancelDrag() {
     cancelSemantic();
     if (dragging || pointerStart) { controls.enabled = true; try { renderer.domElement.releasePointerCapture(pointerStart?.id); } catch {} }
-    dragging = null; pointerStart = null; queuedMove = null;
+    dragging = null; pointerStart = null;
   }
   function cancelSemantic() {
     if (!semanticDrag) return;
@@ -610,26 +452,23 @@ async function initScene() {
     }
   }
   renderer.domElement.addEventListener('pointerdown', async event => {
-    if (event.button !== 0 || dragging || finishingDrag) return;
+    if (event.button !== 0 || dragging) return;
     pointOnPlane(event);
     const hit = raycaster.intersectObjects([...new Set([...intents, ...selectable])])[0]; if (!hit) return;
     if (mode === 'mission' && hit.object.userData.intent) { beginSemantic(event); return; }
     const key = hit.object.userData.key; selectCommit(key);
     if (!arrange) return;
-    if (room && !connected) { toast('다시 연결되면 함께 움직일 수 있습니다.'); return; }
     event.stopImmediatePropagation(); controls.enabled = false;
     const start = { id: event.pointerId, key }; pointerStart = start;
     renderer.domElement.setPointerCapture(event.pointerId);
     try {
-      if (room) await sendAction({ type: 'grab', key });
-      if (pointerStart !== start) { if (room) sendAction({ type: 'release' }).catch(() => {}); return; }
+      if (pointerStart !== start) return;
       const point = pointOnPlane(event); dragging = { key, offset: point ? position(key).sub(point) : new THREE.Vector3() };
     } catch (error) { cancelDrag(); toast(error.message); }
   }, { capture: true });
   renderer.domElement.addEventListener('pointermove', event => {
     const point = pointOnPlane(event); if (!point) return;
-    const now = performance.now();
-    if (semanticDrag) {
+      if (semanticDrag) {
       semanticDrag.moved ||= Math.hypot(event.clientX - semanticDrag.x, event.clientY - semanticDrag.y) > 6;
       if (semanticDrag.ghost) {
         semanticDrag.ghost.visible = semanticDrag.moved; semanticDrag.ghost.position.copy(point);
@@ -641,9 +480,7 @@ async function initScene() {
       point.add(dragging.offset); const local = dragging.key.startsWith('local:');
       const p = { x: THREE.MathUtils.clamp(point.x, -5.2, 5.2), z: THREE.MathUtils.clamp(point.z, local ? 1.4 : -6.2, local ? 6.2 : -1.4) };
       positions[dragging.key] = p; updatePositions();
-      if (room) { queuedMove = { type: 'move', key: dragging.key, position: p }; if (now - lastMove > 60) { lastMove = now; flushMove(); } }
-    } else if (room && connected && now - lastCursor > 110 && Math.abs(point.x) < 30 && Math.abs(point.z) < 30) {
-      lastCursor = now; sendAction({ type: 'cursor', position: { x: point.x, z: point.z } }).catch(() => {});
+
     }
   });
   async function finishDrag(event) {
@@ -655,17 +492,12 @@ async function initScene() {
       return;
     }
     if (!pointerStart || pointerStart.id !== event.pointerId) return;
-    const final = queuedMove; cancelDrag(); queuedMove = final; finishingDrag = true;
-    if (room) {
-      try { await flushMove(); await sendAction({ type: 'release' }); } catch (error) { toast(error.message); }
-    }
-    finishingDrag = false;
+    cancelDrag();
   }
   renderer.domElement.addEventListener('pointerup', finishDrag);
   renderer.domElement.addEventListener('pointercancel', finishDrag);
-  renderer.domElement.addEventListener('pointerleave', () => { if (room && connected && !dragging) sendAction({ type: 'cursor', position: null }).catch(() => {}); });
-  addEventListener('blur', () => { if (dragging && room) sendAction({ type: 'release' }).catch(() => {}); cancelDrag(); });
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) requestRender(); else { if (dragging && room) sendAction({ type: 'release' }).catch(() => {}); cancelDrag(); } });
+  addEventListener('blur', () => { cancelDrag(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) requestRender(); else { cancelDrag(); } });
   reducedMotion.addEventListener('change', () => { controls.enableDamping = !reducedMotion.matches; if (reducedMotion.matches) rebuild(false); requestRender(); });
   renderer.domElement.addEventListener('webglcontextlost', event => { event.preventDefault(); $('#loading').hidden = false; $('#loading').className = 'error'; $('#loading').textContent = '3D 그래픽 연결이 끊겼습니다. 페이지를 새로고침해 주세요. 단계 설명과 커밋 내용은 계속 볼 수 있습니다.'; });
   sceneAPI = { rebuild, select, updatePositions, updateLocks, updateAction, cancelDrag, requestRender };

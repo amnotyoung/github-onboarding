@@ -22,7 +22,7 @@ function checkpoint(m) {
 }
 export const missionTimeline = m => [...(m.history || []), checkpoint(m), ...(m.future || [])];
 
-// One reducer is used by both the solo exercise and the authoritative room server.
+// Repository state and review ownership stay separate from the simulated user interface.
 export function transitionMission(current, action, actor, { solo = false, users = [] } = {}) {
   const m = structuredClone(current), index = phaseIndex(m);
   const role = requested => {

@@ -9,10 +9,10 @@ export function createCollaborationMap({ getContext, activate, selectCommit, can
   let previous = new Set();
   function render() {
     const root = document.querySelector('#collaboration-map');
-    const { mission:m, room, users, selected } = getContext(), state=missionScene(m), commits=missionCommits(m), interaction=missionInteraction(m);
+    const { mission:m, selected } = getContext(), state=missionScene(m), commits=missionCommits(m), interaction=missionInteraction(m);
     const current = new Set(); root.replaceChildren();
-    const mine = users.find(u=>u.id===m.authorId)?.name || '나';
-    const peer = users.find(u=>u.id===m.reviewerId)?.name || (room ? '동료' : '지수');
+    const mine = '나';
+    const peer = '지수';
     let activeRepo = interaction.source?.split(':')[0];
     if (interaction.source === 'document') activeRepo='local';
     if (interaction.source === 'reviewer') activeRepo='peer';
@@ -38,7 +38,7 @@ export function createCollaborationMap({ getContext, activate, selectCommit, can
       const data=state[repo], isRemote=repo==='remote';
       const card=make('section',`map-repo ${repo}${activeRepo===repo&&!m.experiment?' is-active':''}`);card.dataset.repo=repo;
       const head=make('div','map-repo-heading'), identity=make('div');
-      identity.append(make('p','map-eyebrow',isRemote?'함께 쓰는 원격 저장소':'이 컴퓨터의 로컬 저장소'),make('h3','',isRemote?'GitHub':`${repo==='local'?mine:peer}의 컴퓨터`));
+      identity.append(make('p','map-eyebrow',isRemote?'함께 쓰는 원격 저장소':repo==='peer'?'가상 동료의 로컬 저장소':'내 컴퓨터의 로컬 저장소'),make('h3','',isRemote?'GitHub':`${repo==='local'?mine:peer}의 컴퓨터`));
       head.append(identity,make('span','map-scope',isRemote?'공유된 기록':repo==='local'?'담당: 본문':'담당: 제목'));card.append(head);
       const standard=make('button','map-main',`지금 쓰는 기준 · ${labels[data.main]}`);standard.type='button';standard.onclick=()=>selectCommit(`${repo}:${data.main}`);standard.dataset.main=data.main;card.append(standard);
       if(isRemote){

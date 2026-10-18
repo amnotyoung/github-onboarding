@@ -26,78 +26,27 @@ test('teaching history preserves branch pointers, snapshots, and parent relation
   assert.equal(COMMITS.B.lines.length, 2); assert.equal(COMMITS.C.lines.length, 3);
 });
 
-test('real-time rooms synchronize participants and reject conflicting or unauthorized actions', async t => {
+test('static server serves the practice without room APIs or private files', async t => {
   const server = createLabServer();
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => new Promise(resolve => server.close(resolve)));
   const base = `http://127.0.0.1:${server.address().port}`;
-  const streams = [];
-  t.after(async () => { for (const stream of streams) stream.abort(); server.closeRooms(); await new Promise(resolve => server.close(resolve)); });
-  async function request(url, data, auth) {
-    const response = await fetch(base + url, { method: data === undefined ? 'GET' : 'POST', headers: { 'Content-Type': 'application/json', ...(auth ? { Authorization: `Bearer ${auth}` } : {}) }, body: data === undefined ? undefined : JSON.stringify(data) });
-    return { status: response.status, body: await response.json() };
+  for (const file of ['/.git/config', '/server.mjs', '/package.json', '/.build/pages-config.json', '/api/config', '/api/rooms', '/assets/%2e%2e%2fserver.mjs']) {
+    assert.equal((await fetch(base + file)).status, 404, file);
   }
-  async function connect(id, secret) {
-    const controller = new AbortController(); streams.push(controller);
-    const response = await fetch(`${base}/api/rooms/${id}/events?token=${secret}`, { signal: controller.signal });
-    assert.equal(response.status, 200);
-    const reader = response.body.getReader(), decoder = new TextDecoder(); let buffer = '';
-    return {
-      controller,
-      async until(predicate) {
-        const timeout = setTimeout(() => controller.abort(), 5000);
-        try {
-          while (true) {
-            let boundary;
-            while ((boundary = buffer.indexOf('\n\n')) !== -1) {
-              const frame = buffer.slice(0, boundary); buffer = buffer.slice(boundary + 2);
-              const event = frame.match(/^event: (.+)$/m)?.[1]; const raw = frame.match(/^data: (.+)$/m)?.[1];
-              if (event && raw) { const data = JSON.parse(raw); if (predicate(event, data)) return data; }
-            }
-            const chunk = await reader.read(); if (chunk.done) throw new Error('Stream ended too soon'); buffer += decoder.decode(chunk.value, { stream: true });
-          }
-        } finally { clearTimeout(timeout); }
-      },
-    };
+  for (const file of ['/lab.html', '/collaboration-map.mjs', '/mission-ui.mjs', '/lab.css']) {
+    const response = await fetch(base + file);
+    assert.equal(response.status, 200, file);
+    assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+    assert.ok((await response.text()).length > 0);
   }
-  assert.equal((await request('/api/config')).body.multiplayer, true);
-  for (const file of ['/.git/config', '/server.mjs', '/package.json', '/.build/pages-config.json']) assert.equal((await fetch(base + file)).status, 404);
-  assert.equal((await fetch(base + '/lab.html')).status, 200);
-  const made = await request('/api/rooms', { step: 6, mode: 'flow' }); assert.equal(made.status, 201); const id = made.body.room;
-  const a = (await request(`/api/rooms/${id}/join`, { name: '민지' })).body;
-  const b = (await request(`/api/rooms/${id}/join`, { name: '준호' })).body;
-  const ea = await connect(id, a.token), eb = await connect(id, b.token);
-  const initial = await eb.until((event, data) => event === 'state' && data.users.filter(u => u.connected).length === 2);
-  assert.equal(initial.step, 6); assert.ok(!JSON.stringify(initial).includes(a.token));
-  const resumed = await request(`/api/rooms/${id}/join`, { name: '민지', resumeToken: a.token });
-  assert.equal(resumed.body.userId, a.userId); assert.equal(resumed.body.state.users.length, 2);
-  assert.equal((await request('/api/rooms', null)).status, 400);
-  const action = (user, data) => request(`/api/rooms/${id}/action`, data, user.token);
-  const advances = await Promise.all([action(a, { type: 'step', step: 7, revision: 0 }), action(b, { type: 'step', step: 7, revision: 0 })]);
-  assert.deepEqual(advances.map(r => r.status).sort(), [200, 409]);
-  await ea.until((event, data) => event === 'state' && data.step === 7);
-  await eb.until((event, data) => event === 'state' && data.step === 7);
-  assert.equal((await action(a, { type: 'grab', key: 'local:C' })).status, 200);
-  assert.equal((await action(b, { type: 'grab', key: 'local:C' })).status, 409);
-  assert.equal((await action(b, { type: 'grab', key: 'remote:C' })).status, 200);
-  const moves = await Promise.all([action(a, { type: 'move', key: 'local:C', position: { x: 2.5, z: 5.5 } }), action(b, { type: 'move', key: 'remote:C', position: { x: -2.2, z: -5.7 } })]);
-  assert.ok(moves.every(r => r.status === 200));
-  const moved = await ea.until((event, data) => event === 'state' && data.positions['local:C']?.x === 2.5 && data.positions['remote:C']?.x === -2.2);
-  assert.equal(moved.locks['local:C'], a.userId); assert.equal(moved.locks['remote:C'], b.userId);
-  assert.equal((await action(b, { type: 'move', key: 'local:C', position: { x: 0, z: 0 } })).status, 409);
-  assert.equal((await action(a, { type: 'grab', key: 'remote:M' })).status, 400);
-  assert.equal((await action(a, { type: 'move', key: 'local:C', position: { x: 'bad', z: 4 } })).status, 400);
-  await action(a, { type: 'release' });
-  assert.equal((await action(b, { type: 'grab', key: 'local:C' })).status, 200);
-  await action(b, { type: 'move', key: 'local:C', position: { x: 100, z: -100 } });
-  const bounded = await ea.until((event, data) => event === 'state' && data.positions['local:C']?.x === 5.2);
-  assert.equal(bounded.positions['local:C'].z, 1.4);
-  await action(b, { type: 'cursor', position: { x: 1, z: 4 } });
-  const cursor = await ea.until((event, data) => event === 'cursor'); assert.equal(cursor.userId, b.userId);
-  const other = (await request('/api/rooms', { step: 0 })).body.room;
-  assert.equal((await request(`/api/rooms/${other}/action`, { type: 'reset-layout' }, a.token)).status, 401);
-  const crossOrigin = await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'https://unrelated.example' }, body: '{}' }); assert.equal(crossOrigin.status, 403);
-  await action(a, { type: 'reset-layout' });
-  const reset = await eb.until((event, data) => event === 'state' && Object.keys(data.positions).length === 0 && Object.keys(data.locks).length === 0); assert.equal(reset.step, 7);
-  await action(b, { type: 'leave' });
-  const remaining = await ea.until((event, data) => event === 'state' && data.users.length === 1); assert.equal(remaining.users[0].name, '민지');
+  const module = await fetch(base + '/collaboration-map.mjs', { method: 'HEAD' });
+  assert.match(module.headers.get('content-type'), /javascript/);
+  assert.ok(Number(module.headers.get('content-length')) > 0);
+  assert.equal(await module.text(), '');
+  assert.equal((await fetch(base + '/api/rooms', { method: 'POST' })).status, 404);
+  const write = await fetch(base + '/lab.html', { method: 'POST', body: '{}' });
+  assert.equal(write.status, 405);
+  assert.equal(write.headers.get('allow'), 'GET, HEAD');
+  assert.equal((await fetch(base + '/%zz')).status, 400);
 });
