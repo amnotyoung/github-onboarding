@@ -48,6 +48,8 @@ npm start
 
 `http://localhost:4173/lab.html`을 엽니다. 서버는 정적 파일만 제공합니다. 로그인, 방 만들기, 실시간 다중 접속은 없습니다. 실제 GitHub 저장소를 변경하지 않습니다.
 
+미리보기를 사용하는 동안 서버를 실행해 두어야 합니다. 서버가 꺼졌다면 `npm start`로 다시 실행한 뒤 페이지를 새로고침합니다. HTML·CSS·스크립트는 캐시에 저장하지 않습니다. 페이지를 받은 뒤 스타일이나 모듈을 읽지 못하면 오류 안내와 **다시 불러오기** 버튼을 표시합니다.
+
 정적 호스팅에는 `lab.html`, `lab.js`, `lab.css`, `workshop-model.mjs`, `workshop-ui.mjs`, `workshop-motion.mjs`와 서체·브랜드 이미지가 있는 `assets/`를 포함합니다. JavaScript 모듈 때문에 `file://` 대신 HTTP로 실행해야 합니다. WebGL이나 Three.js는 사용하지 않습니다.
 
 ## 검증

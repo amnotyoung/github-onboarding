@@ -31,7 +31,8 @@ export function createLabServer() {
       const info = await stat(full).catch(() => null);
       if (!info?.isFile()) return reject(404, '파일을 찾을 수 없습니다.');
       const content = req.method === 'HEAD' ? undefined : await readFile(full);
-      res.writeHead(200, { 'Content-Type': MIME[path.extname(full)] || 'application/octet-stream', 'Content-Length': info.size, 'Cache-Control': 'no-cache' });
+      // A stopped preview must not leave an old HTML shell paired with missing modules.
+      res.writeHead(200, { 'Content-Type': MIME[path.extname(full)] || 'application/octet-stream', 'Content-Length': info.size, 'Cache-Control': ENTRY_FILES.has(relative) ? 'no-store' : 'no-cache' });
       res.end(content);
     } catch {
       if (!res.headersSent) reject(500, '파일을 읽지 못했습니다.');

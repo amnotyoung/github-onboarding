@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light">
   <meta name="description" content="같은 화면에서 기록 공유, 지수의 로컬 충돌 해결과 PR의 병합·반영 제외를 배우는 실습">
-  <title>GitHub 협업 실습실 — ANY</title><link rel="icon" href="data:,"><link rel="preload" href="assets/fonts/PretendardVariable.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="lab.css">
+  <title>GitHub 협업 실습실 — ANY</title><link rel="icon" href="data:,"><link rel="preload" href="assets/fonts/PretendardVariable.woff2" as="font" type="font/woff2" crossorigin><link id="lab-style" rel="stylesheet" href="lab.css">
 </head>
 <body>
 <header class="site-header"><a class="brand" href="index.html"><img src="assets/brand/any-logo-mono-reference.jpg" width="32" height="32" alt="ANY"><span>GitHub 협업 실습실</span></a><span class="lesson-name">백설공주, 함께 이어쓰기</span><button id="help-button" class="text-button">역할·개념</button></header>
@@ -14,5 +14,15 @@
 <dialog id="file-dialog" aria-labelledby="file-title"><div class="dialog-heading"><h2 id="file-title"></h2><button id="file-close" class="close" aria-label="본문 수정 창 닫기">×</button></div><div id="file-body"></div><button id="file-save" class="primary">이 문장 저장하기</button></dialog>
 <dialog id="record-dialog" aria-labelledby="record-title"><div class="dialog-heading"><h2 id="record-title"></h2><button id="record-close" class="close" aria-label="기록 내용 닫기">×</button></div><p id="record-location"></p><div class="file-label">snow-white.md</div><pre id="record-content"></pre><p id="record-parents"></p></dialog>
 <dialog id="info-dialog" aria-labelledby="info-title"><div class="dialog-heading"><h2 id="info-title"></h2><button id="info-close" class="close" aria-label="상세 설명 닫기">×</button></div><div id="info-body"></div></dialog>
-<noscript><p>JavaScript를 켜면 실습할 수 있습니다.</p></noscript><script type="module" src="lab.js"></script>
+<noscript><p>JavaScript를 켜면 실습할 수 있습니다.</p></noscript>
+<script type="module">
+ const showLoadError=()=>{
+  const message=document.getElementById('error-message');
+  message.textContent='실습 파일을 불러오지 못했습니다. 미리보기 서버가 켜져 있으면 다시 불러오세요. ';
+  const retry=document.createElement('button');retry.type='button';retry.textContent='다시 불러오기';retry.onclick=()=>location.reload();
+  message.append(retry);message.hidden=false;
+ };
+ if(document.getElementById('lab-style').sheet)import('./lab.js').catch(showLoadError);
+ else showLoadError();
+</script>
 </body></html>

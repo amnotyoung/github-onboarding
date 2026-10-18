@@ -10,10 +10,13 @@ test('static server serves the practice without room APIs or private files', asy
   for (const file of ['/.git/config', '/server.mjs', '/package.json', '/.build/pages-config.json', '/api/config', '/api/rooms', '/assets/%2e%2e%2fserver.mjs']) {
     assert.equal((await fetch(base + file)).status, 404, file);
   }
-  for (const file of ['/lab.html', '/workshop-model.mjs', '/workshop-ui.mjs', '/workshop-motion.mjs', '/lab.css']) {
+  for (const file of ['/lab.html?v=guided-workshop&mode=mission', '/lab.js', '/workshop-model.mjs', '/workshop-ui.mjs', '/workshop-motion.mjs', '/lab.css']) {
     const response = await fetch(base + file);
     assert.equal(response.status, 200, file);
     assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    const extension = new URL(file, base).pathname.split('.').pop();
+    assert.match(response.headers.get('content-type'), extension === 'html' ? /text\/html/ : extension === 'css' ? /text\/css/ : /javascript/);
     assert.ok((await response.text()).length > 0);
   }
   const module = await fetch(base + '/workshop-model.mjs', { method: 'HEAD' });
