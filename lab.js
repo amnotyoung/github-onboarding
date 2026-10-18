@@ -7,7 +7,7 @@ const requested=new URLSearchParams(location.search).get('mode');let mode=Object
 const motion=createWorkshopMotion();
 const state=()=>sessions.get(mode);
 const ui=createWorkshopUI({getState:state,dispatch,openFile,openRecord});
-function render(){ui.render();$('#workshop').setAttribute('aria-labelledby',`mode-${mode}`);const url=new URL(location.href);url.searchParams.set('mode',mode);url.hash=`step=${currentStep(state()).id}`;history.replaceState(null,'',url);}
+function render(){ui.render();motion.describe(replayDescription(state()));$('#workshop').setAttribute('aria-labelledby',`mode-${mode}`);const url=new URL(location.href);url.searchParams.set('mode',mode);url.hash=`step=${currentStep(state()).id}`;history.replaceState(null,'',url);}
 function focusAction(){
  const complete=$('#completion-title');
  if(complete){complete.focus({preventScroll:true});complete.closest('.completion').scrollIntoView({block:'start',behavior:'instant'});return;}
@@ -21,14 +21,15 @@ function focusAction(){
 }
 
 async function dispatch(action){
- if(busy||motion.busy)return;busy=true;$('#error-message').hidden=true;
+ if(busy||motion.busy)return;busy=true;const startedMode=mode;$('#error-message').hidden=true;
  try{
-  if(action.type==='replay'){const description=replayDescription(state());if(description)await motion.play(motion.capture(),description);$('[data-replay]')?.focus({preventScroll:true});return;}
+  if(action.type==='replay'){const description=replayDescription(state());if(description)await motion.play(motion.capture(),description);if(mode===startedMode&&!motion.interrupted)$('[data-replay]')?.focus({preventScroll:true});return;}
   const before=state(),layout=motion.capture();const after=transitionWorkshop(before,action);sessions.set(mode,after);render();
   if(action.type!=='restart'&&action.type!=='done'){
    const description=changeDescription(before,after,action.type);await motion.play(layout,description);
   }
-  if(action.type==='navigate')$('#step-jump').focus({preventScroll:true});else focusAction();
+  if(mode!==startedMode)return;
+  if(!motion.interrupted){if(action.type==='navigate')$('#step-jump').focus({preventScroll:true});else focusAction();}
  }catch(error){$('#error-message').textContent=error.message;$('#error-message').hidden=false;}
  finally{busy=false;}
 }
@@ -48,7 +49,7 @@ function openRecord(repo,id){
  $('#record-content').textContent=documentLines(s.commits[id].line).map((line,i)=>`${i+1}  ${line}`).join('\n');
  $('#record-parents').textContent=s.commits[id].parents.length?`이전 기록: ${s.commits[id].parents.join(' + ')}`:'처음 기록입니다.';$('#record-dialog').showModal();
 }
-function setMode(next){if(next===mode||busy)return;motion.cancel();$('#file-dialog').close();$('#record-dialog').close();mode=next;$('#error-message').hidden=true;render();}
+function setMode(next){if(next===mode||(busy&&!motion.busy))return;motion.cancel();$('#file-dialog').close();$('#record-dialog').close();mode=next;$('#error-message').hidden=true;render();}
 for(const id of Object.keys(MODES))$(`#mode-${id}`).onclick=()=>setMode(id);
 $('.lesson-tabs').onkeydown=event=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();const modes=Object.keys(MODES),index=modes.indexOf(mode);const next=event.key==='Home'?0:event.key==='End'?modes.length-1:(index+(event.key==='ArrowRight'?1:-1)+modes.length)%modes.length;setMode(modes[next]);$(`#mode-${mode}`).focus();};
 $('#file-close').onclick=()=>$('#file-dialog').close();$('#record-close').onclick=()=>$('#record-dialog').close();
