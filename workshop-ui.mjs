@@ -1,7 +1,7 @@
 import {MODES,ROLE_NOTE,TEXT,currentStep,workshopTimeline,prStatus,observation,documentLines,fileEdit} from './workshop-model.mjs';
 const node=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n;};
 const names={B:'처음',C:'초안',D:'수정',H:'결말',M:'합침',M1:'이야기 합침',R:'해결',M2:'모두 합침'};
-const coords={B:[7,48],C:[25,18],D:[46,18],H:[29,78],M1:[67,18],R:[74,78],M2:[93,48],M:[86,48]};
+const coords={B:[7,48],C:[25,18],D:[46,18],H:[29,78],M1:[67,48],R:[74,78],M2:[93,48],M:[86,48]};
 export function createWorkshopUI({getState,dispatch,openFile,openRecord}){
  function button(text,click,cls='primary'){const b=node('button',cls,text);b.type='button';b.onclick=click;return b;}
  function render(){
@@ -51,7 +51,7 @@ export function createWorkshopUI({getState,dispatch,openFile,openRecord}){
   if(Object.keys(s.remote.branches).length){const branches=node('div','shared-branches');for(const [name,id] of Object.entries(s.remote.branches)){const branch=node('span','branch-chip',`${name} → ${id}`);branch.dataset.motionKey=`remote:branch:${name}`;branches.append(branch);}remote.append(branches);}
   const prs=node('div','pr-list');
   for(const branch of ['story','happy']){const p=s.prs[branch];if(!p)continue;const status=prStatus(s,branch),card=node('article',`pr-card ${status}`);card.dataset.pr=p.id;card.dataset.status=status;card.dataset.motionKey=`pr:${p.id}`;
-   card.append(node('div','pr-title',`PR #${p.id} · ${branch==='story'?'이야기':'결말'} 수정`),node('p','pr-route',`${branch} · ${p.head} → main · ${s.remote.main}`),node('p','pr-people','작성 · 나　검토·병합 · 지수'));
+   card.append(node('div','pr-title',`PR #${p.id} · ${branch==='story'?'이야기':'결말'} 수정`),node('p','pr-route',status==='merged'?`${branch} · ${p.head} → 병합 기록 ${p.mergeCommit}`:`${branch} · ${p.head} → main · ${s.remote.main}`),node('p','pr-people','작성 · 나　검토·병합 · 지수'));
    const statuses={review:'지수의 검토 대기',changes:'지수가 수정 요청',approved:'지수 승인 · 합칠 수 있음',conflict:'충돌 · 지금은 합칠 수 없음',merged:'지수가 합침 완료'};
    card.append(node('strong','pr-status',statuses[status]));
    if(p.issue)card.append(node('p','issue-link',`이슈 #${p.issue}와 연결 · Closes #${p.issue}`));

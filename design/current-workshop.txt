@@ -25,3 +25,5 @@ output/playwright/persistent-clone-card.png
 output/playwright/visual-issue-assignment.png
 output/playwright/persistent-resolution-mobile.png
 output/playwright/workshop-combined-mobile.png
+
+최종 마감 점검은 design/final-audit.txt에 기록했다. 현재 테스트는 7개이며, 탐색 재생·포커스·완료 화면·작은 화면의 기록 조작까지 보강했다.
