@@ -20,7 +20,7 @@ export function createCollaborationMap({ getContext, activate, selectCommit, can
     if (interaction.kind === 'peer-pull') activeRepo='peer';
     function record(key, compact=false) {
       const [repo,id]=key.split(':');current.add(key);
-      const node=make('button', `map-record ${owner(id)}${!m.navigation&&!previous.has(key)?' just-added':''}`);node.type='button';node.dataset.record=key;
+      const node=make('button', `map-record ${owner(id)}${previous.size>0&&!m.navigation&&!previous.has(key)?' just-added':''}`);node.type='button';node.dataset.record=key;
       node.setAttribute('aria-label',`${repo==='local'?mine:repo==='peer'?peer:'GitHub'} · ${labels[id]} 내용 보기`);node.setAttribute('aria-pressed',String(selected===key));
       node.append(make('span','record-id',id),make('span','record-name',labels[id]));node.onclick=()=>selectCommit(key);
       if(compact)node.classList.add('compact'); return node;
@@ -28,17 +28,31 @@ export function createCollaborationMap({ getContext, activate, selectCommit, can
     function graph(repo) {
       const graph=make('div','map-graph');graph.setAttribute('aria-label',`${repo} 기록 연결`);
       const ids=state[repo].commits.filter(id=>id!=='A');
+      graph.classList.toggle('single-record',ids.length===1);
       const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 100 100');svg.setAttribute('preserveAspectRatio','none');svg.setAttribute('aria-hidden','true');
       for(const id of ids)for(const parent of commits[id].parents){if(!ids.includes(parent))continue;const a=positions[parent],b=positions[id];const line=document.createElementNS(svg.namespaceURI,'path');line.setAttribute('d',`M ${a[0]} ${a[1]} C ${(a[0]+b[0])/2} ${a[1]}, ${(a[0]+b[0])/2} ${b[1]}, ${b[0]} ${b[1]}`);line.setAttribute('class',owner(id));svg.append(line);}
       graph.append(svg);
       for(const id of ids){const node=record(`${repo}:${id}`,true);node.style.left=positions[id][0]+'%';node.style.top=positions[id][1]+'%';graph.append(node);}
       return graph;
     }
+    function route(repo) {
+      const node=make('div',`map-route ${repo}`);
+      const kinds=repo==='local'?{up:['push','push-revision'],down:['pull']}:{up:['peer-push'],down:['peer-pull']};
+      for(const [direction,text] of [['up','↑ GitHub에 공유'],['down','↓ 받아오기']]) {
+        const next=kinds[direction].includes(interaction.kind), recent=kinds[direction].includes(m.lastAction);
+        const item=make('span',`route-${direction}${next?' is-next':recent?' active':''}`,text);
+        item.title=next?'다음에 할 동작':recent?'방금 한 동작':'';
+        if(next)item.setAttribute('aria-label',`다음 동작: ${text}`);
+        node.append(item);
+      }
+      return node;
+    }
     function card(repo) {
       const data=state[repo], isRemote=repo==='remote';
       const card=make('section',`map-repo ${repo}${activeRepo===repo&&!m.experiment?' is-active':''}`);card.dataset.repo=repo;
       const head=make('div','map-repo-heading'), identity=make('div');
       identity.append(make('p','map-eyebrow',isRemote?'함께 쓰는 원격 저장소':repo==='peer'?'가상 동료의 로컬 저장소':'내 컴퓨터의 로컬 저장소'),make('h3','',isRemote?'GitHub':`${repo==='local'?mine:peer}의 컴퓨터`));
+      if(!isRemote)card.append(route(repo));
       head.append(identity,make('span','map-scope',isRemote?'공유된 기록':repo==='local'?'담당: 본문':'담당: 제목'));card.append(head);
       const standard=make('button','map-main',`지금 쓰는 기준 · ${labels[data.main]}`);standard.type='button';standard.onclick=()=>selectCommit(`${repo}:${data.main}`);standard.dataset.main=data.main;card.append(standard);
       if(isRemote){
@@ -48,6 +62,7 @@ export function createCollaborationMap({ getContext, activate, selectCommit, can
       } else {
         const row=make('div','map-local-records');for(const id of data.commits.filter(id=>id!=='A'))row.append(record(`${repo}:${id}`));card.append(row);
         const file=make('div','map-working-file');
+        file.hidden=repo==='local'?!data.branch&&!state.file:!m.peerStage;
         if(repo==='local') {
           const dirty=state.file;
           file.append(make('span','',dirty?'파일 수정됨 · 아직 기록 전':data.branch?`내 작업 기록 · ${labels[data.branch]}`:'별도 작업 전 · 같은 기준에서 시작'));
@@ -57,7 +72,8 @@ export function createCollaborationMap({ getContext, activate, selectCommit, can
         }
         card.append(file);
         const mainShared=state.remote.main===data.main;
-        const note=make('p','map-sync-note',mainShared?'팀 기준과 같아요':`내 기준은 아직 ${labels[data.main]}입니다. 받아와야 갱신돼요.`);card.append(note);
+        card.dataset.sync=mainShared?'current':'behind';
+        const note=make('p','map-sync-note',mainShared?'팀 기준과 같아요':`${repo==='local'?'내':'지수의'} 기준은 아직 ${labels[data.main]}입니다. 받아와야 갱신돼요.`);card.append(note);
       }
       if(activeRepo===repo&&!m.experiment){
         const action=make('button','map-primary',interaction.label);action.type='button';action.dataset.sceneAction=interaction.kind;action.disabled=!canInteract();action.onclick=activate;card.append(action);
@@ -67,12 +83,7 @@ export function createCollaborationMap({ getContext, activate, selectCommit, can
     }
     root.append(card('remote'));
     const routes=make('div','map-routes');routes.setAttribute('aria-label','각 로컬과 원격 사이의 공유 및 가져오기');
-    for(const repo of ['local','peer']){
-      const route=make('div',`map-route ${repo}`);
-      const activeUp=(repo==='local'&&['push','push-revision'].includes(m.lastAction))||(repo==='peer'&&m.lastAction==='peer-push');
-      const activeDown=(repo==='local'&&m.lastAction==='pull')||(repo==='peer'&&m.lastAction==='peer-pull');
-      route.append(make('span',`route-up${activeUp?' active':''}`,'↑ 공유'),make('span',`route-down${activeDown?' active':''}`,'↓ 받아오기'));routes.append(route);
-    }
+    for(const repo of ['local','peer'])routes.append(route(repo));
     root.append(routes);
     const locals=make('div','map-locals');locals.append(card('local'),card('peer'));root.append(locals);
     previous=current;root.dataset.ready='true';

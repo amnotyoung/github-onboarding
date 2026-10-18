@@ -150,7 +150,7 @@ export function missionInteraction(m) {
   if (m.phase === 'done' && m.peerStage < 5) return { instruction: '내 컴퓨터는 갱신됐지만 동료의 기준은 아직 예전입니다. 동료도 받아오게 하세요.', label: '동료의 기준도 갱신하기', kind: 'peer-pull', source: 'peer:B', role: 'reviewer' };
 
   const views = {
-    brief: ['각자 같은 동화책을 가지고 시작합니다. 내 컴퓨터에서 작업 공간을 만드세요.', '내 작업 공간 만들기', 'branch', 'document'],
+    brief: ['팀 원본은 두고, 내 컴퓨터에 작업 공간을 만드세요.', '내 작업 공간 만들기', 'branch', 'document'],
     draft: ['내 컴퓨터에서 동화책에 한 문장을 보태세요.', '내 동화책 고치기', 'edit', 'document'],
     saved: ['고친 동화책을 눌러, 현재 상태를 기록하세요.', '현재 상태 기록하기', 'commit', 'document'],
     committed: ['내 로컬 기록을 GitHub에 공유하세요. 동료의 로컬은 자동으로 바뀌지 않습니다.', '내 기록을 GitHub에 공유', 'push', 'local:C'],

@@ -49,6 +49,14 @@ async function missionAction(action) {
     afterMissionChange(previousPhase);
     if (['restart', 'navigate'].includes(action.kind)) positions = {};
     selected = lessonNow().selected; sceneAPI?.rebuild(action.kind !== 'navigate'); renderStep();
+    if (!['navigate', 'restart', 'request-changes'].includes(action.kind) && !mission.experiment) {
+      const next = $('#collaboration-map .map-primary');
+      next?.focus({ preventScroll: true });
+      if (next) {
+        const rect = next.getBoundingClientRect();
+        if (rect.top < 12 || rect.bottom > innerHeight - 12) next.closest('.map-repo').scrollIntoView({ block: 'nearest', behavior: reducedMotion.matches ? 'instant' : 'smooth' });
+      }
+    }
     if (hadFuture && !mission.future.length && !mission.navigation && action.kind !== 'restart') toast('이 장면부터 이후 기록·리뷰·승인을 다시 진행합니다.');
   } catch (error) { $('#mission-message').textContent = error.message; if (!$('#activity-dialog').open) toast(error.message); }
   finally { stepPending = false; }
@@ -109,6 +117,7 @@ function renderStep() {
 }
 function renderNavigation() {
   $('#scene-navigation').hidden = mode !== 'mission';
+  $('#scene-navigation').dataset.context = mission.experiment ? 'experiment' : mission.future?.length ? 'history' : 'current';
   const visited = missionTimeline(mission), index = (mission.history || []).length;
   const blocked = Boolean(mission.experiment);
   $('#scene-back').disabled = blocked || index === 0;

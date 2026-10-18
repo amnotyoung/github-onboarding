@@ -33,3 +33,71 @@ body[data-learning-mode=mission] #scene,body[data-learning-mode=mission] .scene-
 @media(max-width:600px){#collaboration-map{padding:12px}.map-locals{grid-template-columns:1fr;gap:14px}.map-routes{display:none}.map-repo.local::before{content:'↑ GitHub에 공유 · ↓ GitHub에서 받아오기';display:block;font-size:11px;color:#779052;margin-bottom:12px}.map-repo.peer::before{content:'↑ GitHub에 공유 · ↓ GitHub에서 받아오기';display:block;font-size:11px;color:#9b7a45;margin-bottom:12px}.map-repo.remote{margin-bottom:14px}.map-graph{height:150px;margin-left:8px;margin-right:8px}.map-record.compact{min-width:55px;max-width:70px;font-size:10px}.map-record.compact .record-id{width:25px;height:25px}.map-primary{font-size:12px}.map-shared-content p,.map-working-file{font-size:12px}.map-main{min-height:37px}.map-record{min-height:40px}}
 @media(max-width:800px){body[data-learning-mode=mission] #scene{height:440px;min-height:440px}#action-focus h2{font-size:21px}.intent-label .scene-action-button{font-size:12px;padding:10px 13px}}
 @media(max-width:520px){body[data-learning-mode=mission] main{padding-top:20px}body[data-learning-mode=mission] .intro h1{font-size:25px}body[data-learning-mode=mission] .intro{gap:10px}body[data-learning-mode=mission] #scene{height:390px;min-height:390px}#action-focus h2{font-size:20px;line-height:1.5}#action-hint{font-size:11px}.scene-action-button{max-width:175px;font-size:12px;padding:10px}.drop-label{font-size:10px;max-width:140px;white-space:normal;text-align:center;padding:5px}.experiment-comparison{grid-template-columns:1fr}.experiment-file{padding:15px}.activity-dialog{padding:21px}#observed-change{font-size:13px}.node-label .commit-select{font-size:10px;min-height:32px;padding:4px 6px}body[data-learning-mode=mission] .node-label strong{font-size:10px}body[data-learning-mode=mission] .branch-tag{font-size:9px}body[data-learning-mode=mission] #mission-toolbar{padding:12px 15px}}
+
+/* Actual-screen review: clearer repository scopes and a shorter mobile header. */
+.map-repo.remote{background:#edf4f2;border-color:#b2c9c0;border-top:4px solid #49796b}
+.map-repo.local{border-bottom:3px solid #829c4f}
+.map-repo.peer{background:#fbf8f1;border-color:#d7ccb8;border-bottom:3px solid #b7925c}
+.map-repo.is-active{outline:2px solid #819a39;outline-offset:2px;box-shadow:none}
+.map-repo-heading h3{display:flex;align-items:center;gap:9px}
+.map-repo.local h3::before,.map-repo.peer h3::before{content:'';width:21px;height:15px;border:2px solid currentColor;border-radius:3px;box-shadow:0 5px 0 -3px currentColor;opacity:.7}
+.map-repo.remote h3::before{content:'☁';font-size:25px;color:#49796b;line-height:1}
+.map-eyebrow,.map-scope,.map-working-file,.map-shared-content p,.map-sync-note{color:#53664b}
+.map-eyebrow,.map-sync-note,.map-main{font-size:12px}
+.map-repo.peer .map-eyebrow,.map-repo.peer .map-scope{color:#7b623e}
+.map-repo[data-sync=behind] .map-main{background:#fbefd8;border-color:#d7bb82;color:#755420}
+.map-repo[data-sync=behind] .map-sync-note{color:#755420}
+.map-record.compact{height:44px;min-height:44px;justify-content:center;padding:0;font-size:12px}
+.map-record.compact .record-id{box-shadow:0 0 0 4px #edf4f2}
+.map-record.compact .record-name{position:absolute;top:calc(50% + 16px);background:#edf4f2;padding:1px 2px}
+.map-graph.single-record{height:80px}
+.map-route{position:relative;color:#526a43;font-size:13px;gap:12px;align-items:center}
+.map-routes{padding:17px 0}
+.map-routes .map-route::before{content:'';position:absolute;z-index:0;top:-17px;bottom:-17px;left:50%;border-left:2px dashed #bccbb1}
+.map-route span{z-index:1;position:relative;padding:7px 11px;background:#eef2e8}
+.map-route .is-next{border:1px dashed #7e983e;background:#f7faef;color:#3c551e;font-weight:650}
+.map-route .active{border-color:#a7bd75;background:#e1ecc8;color:#3c551e}
+.map-route.peer .is-next{border-color:#ac8b54;background:#fff9ed;color:#795a2a}
+.map-repo>.map-route{display:none}
+#action-hint,#navigation-note{color:#596e4d;font-size:12px}
+.activity-dialog .mission-choices legend{font-size:12px;margin-bottom:14px;color:#cad8ba}
+.activity-dialog .mission-choice{padding:14px;transition:border-color .15s,background .15s}
+.activity-dialog .mission-choice:has(input:checked){border-color:#c4d35c;background:#344626;box-shadow:inset 3px 0 #c4d35c}
+.activity-dialog .mission-choice span span{color:#c6d4b9}
+.activity-dialog .mission-primary:disabled{opacity:1;background:#435033;color:#b4c39d;cursor:default}
+select:focus-visible{outline:3px solid #4b8d80;outline-offset:3px}
+@media(max-width:600px){
+  .map-repo.local::before,.map-repo.peer::before{display:none}
+  .map-repo>.map-route{display:flex;justify-content:start;flex-wrap:wrap;margin:-3px 0 12px;gap:6px;font-size:12px}
+  .map-repo>.map-route span{padding:5px 6px;background:transparent}
+  .map-repo>.map-route .is-next{background:#f0f5df}
+  .map-repo.peer>.map-route .is-next{background:#fff1d9}
+  .map-repo{padding:13px}
+  .map-graph.single-record{height:48px;margin-top:4px}
+  .map-graph.single-record .map-record.compact{flex-direction:row;gap:7px;width:100px}
+  .map-graph.single-record .record-name{position:static}
+  .map-graph.single-record .map-record{left:46px!important}
+  .map-record.compact{font-size:11px;min-width:52px;max-width:68px}
+  .map-repo-heading{gap:4px}
+  .map-main{margin-top:8px;min-height:35px}
+  .map-shared-content{margin-top:7px}
+  .map-shared-content p{margin-top:3px}
+}
+@media(max-width:520px){
+  body[data-learning-mode=mission] .site-header{height:52px}
+  body[data-learning-mode=mission] main{padding-top:14px}
+  body[data-learning-mode=mission] .intro{gap:6px;margin-bottom:12px}
+  body[data-learning-mode=mission] .intro h1{font-size:23px}
+  .learning-toolbar{margin-bottom:12px}
+  .learning-modes button{padding:8px;min-height:36px}
+  #action-focus{margin:12px 0}
+  #action-focus h2{font-size:18px;line-height:1.5}
+  #action-hint{display:none}
+  #scene-navigation{margin-bottom:12px}
+  .navigation-controls{grid-template-columns:44px minmax(0,1fr) 44px;gap:6px}
+  .navigation-controls select{grid-column:auto;grid-row:auto;font-size:12px;padding:8px;min-height:44px}
+  .navigation-controls button{font-size:18px;padding:8px}
+  .navigation-word{display:none}
+  #scene-navigation[data-context=current] #navigation-note{display:none}
+  #navigation-note{font-size:11px}
+}
