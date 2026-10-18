@@ -19,3 +19,11 @@ test('replay after navigating matches the observation in the selected snapshot',
  }
  assert.equal(replayDescription(newWorkshop()),null);
 });
+test('resolution movement targets Jisu local storage until an explicit push',()=>{
+ const local=reach('commit-resolution'),recorded=transitionWorkshop(local,{type:'commit-resolution'});
+ assert.equal(changeDescription(local,recorded,'commit-resolution').moves[0].to,'record:jisu:R');
+ const shared=transitionWorkshop(recorded,{type:'push-resolution'});
+ const move=changeDescription(recorded,shared,'push-resolution').moves[0];assert.equal(move.from,'record:jisu:R');assert.equal(move.to,'record:remote:R');
+ const clone=reach('clone-jisu'),cloned=transitionWorkshop(clone,{type:'clone-jisu'});
+ assert.equal(changeDescription(clone,cloned,'clone-jisu').moves[0].token,'M1');
+});

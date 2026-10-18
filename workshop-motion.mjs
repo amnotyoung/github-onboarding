@@ -3,20 +3,22 @@ const el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className
 export function changeDescription(before,after,type){
  const note=observation(after),moves=[];
  const move=(from,to,token,fromName,toName)=>moves.push({from,to,token,fromName,toName});
- if(type.startsWith('clone-')){const who=type.slice(6);move('record:remote:B',`record:${who}:B`,'B','GitHub 저장소',who==='mine'?'내 .git':'지수의 .git');}
- if(type.startsWith('assign-')){const id=type.endsWith('story')?21:22;move('person:mine',`assignee:${id}`,'나','담당자 목록',`이슈 #${id}`);}
- if(type.startsWith('branch-')){const branch=type.slice(7);move('mine:main',`mine:branch:${branch}`,branch,'같은 기록 B',`${branch} 브랜치`);}
- const records={'commit-story':'C','commit-revision':'D','commit-happy':'H'};
- if(records[type])move('mine:file',`record:mine:${records[type]}`,records[type],'저장한 파일','새 기록');
- const shared={'push-story':'C','push-revision':'D','push-happy':'H'};
- if(shared[type])move(`record:mine:${shared[type]}`,`record:remote:${shared[type]}`,shared[type],'내 저장소','GitHub 저장소');
+ if(type.startsWith('clone-')){const who=type.slice(6),id=after.repos[who].main;move('remote:main',`${who}:main`,id,'GitHub 저장소',who==='mine'?'내 저장소':who==='jisu'?'지수의 저장소':'민수의 저장소');if(who==='jisu')move('record:remote:H','record:jisu:H','H','GitHub happy','지수의 저장소');}
+ if(type.startsWith('assign-')){const id=type.endsWith('story')?21:type.endsWith('happy')?22:23,who=id===23?'minsu':'mine';move(`person:${who}`,`assignee:${id}`,who==='mine'?'나':'민수','담당자 목록',`이슈 #${id}`);}
+ if(type.startsWith('branch-')){const branch=type.slice(7),who=branch==='proposal'?'minsu':'mine';move(`${who}:main`,`${who}:branch:${branch}`,branch,'같은 기록 B',`${branch} 브랜치`);}
+ if(type==='checkout-jisu')move('record:jisu:H','jisu:branch:happy','happy','복제한 H','지수의 PR 브랜치');
+ if(type==='inspect-conflict')move('jisu:main','jisu:file','M1','지수의 main','지수의 happy · 충돌');
+ const records={'commit-story':'C','commit-revision':'D','commit-happy':'H','commit-proposal':'S'};
+ if(records[type]){const who=type==='commit-proposal'?'minsu':'mine';move(`${who}:file`,`record:${who}:${records[type]}`,records[type],'저장한 파일','새 기록');}
+ const shared={'push-story':'C','push-revision':'D','push-happy':'H','push-proposal':'S','push-resolution':'R'};
+ if(shared[type]){const who=type==='push-proposal'?'minsu':type==='push-resolution'?'jisu':'mine';move(`record:${who}:${shared[type]}`,`record:remote:${shared[type]}`,shared[type],who==='mine'?'내 저장소':who==='jisu'?'지수의 저장소':'민수의 저장소','GitHub 저장소');}
  if(type==='merge-story')move('pr:31','remote:main',before.prs.story.head,'지수가 합친 PR #31','GitHub 기준본');
  if(type==='resolve'){move(`conflict:${before.resolver.base}`,'resolution:line','일곱 난쟁이','두 변경','해결 문장');move(`conflict:${before.resolver.head}`,'resolution:line','행복하게','두 변경','해결 문장');}
- if(type==='commit-resolution')move('resolution:line','record:remote:R','R','해결한 문장','GitHub happy');
+ if(type==='commit-resolution')move('jisu:file','record:jisu:R','R','지수의 해결한 파일','지수의 로컬 happy');
  if(type==='merge-happy')move('pr:32','remote:main',before.prs.happy.head,'지수가 합친 PR #32','GitHub 기준본');
  if(type.startsWith('pull-')){const who=type.slice(5);move('remote:main',`${who}:main`,after.remote.main,'GitHub 기준본',who==='mine'?'내 기준본':'지수의 기준본');}
  if(type==='navigate')return {kind:type,title:'선택한 학습 단계',detail:'선택한 단계의 상태를 다시 보여 줍니다. 실제 Git 기록을 삭제하는 동작은 아닙니다.',concept:'이전·다음 탐색',moves};
- const diagram=type.startsWith('branch-')?{kind:'branch',name:type.slice(7),record:'B'}:records[type]?{kind:'record',from:'파일',to:records[type]}:type==='merge-story'||type==='merge-happy'?{kind:'merge',from:`${before.remote.main} + ${before.prs[type==='merge-story'?'story':'happy'].head}`,to:after.remote.main}:type==='commit-resolution'?{kind:'record',from:'해결한 문장',to:'R'}:null;
+ const diagram=type.startsWith('branch-')?{kind:'branch',name:type.slice(7),record:'B'}:type==='checkout-jisu'?{kind:'branch',name:'happy',record:'H'}:records[type]?{kind:'record',from:'파일',to:records[type]}:type==='merge-story'||type==='merge-happy'?{kind:'merge',from:`${before.remote.main} + ${before.prs[type==='merge-story'?'story':'happy'].head}`,to:after.remote.main}:type==='commit-resolution'?{kind:'record',from:'해결한 문장',to:'R'}:null;
  return {...note,kind:type,moves,diagram,consequence:type==='merge-story'&&MODES[after.mode].issues?'PR #32 · 합칠 수 있음 → 충돌':null,
   comparison:type==='resolve'?[before.commits[before.resolver.base].line,before.commits[before.resolver.head].line,after.resolver.line]:null};
 }
