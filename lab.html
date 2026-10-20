@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light">
   <meta name="description" content="같은 화면에서 기록 공유, 지수의 로컬 충돌 해결과 PR의 병합·반영 제외를 배우는 실습">
-  <title>GitHub 협업 실습실 — ANY</title><link rel="icon" href="data:,"><link rel="preload" href="assets/fonts/PretendardVariable.woff2" as="font" type="font/woff2" crossorigin><link id="lab-style" rel="stylesheet" href="lab.css">
+  <title>GitHub 협업 실습실 — ANY</title><link rel="icon" href="data:,"><link rel="preload" href="assets/fonts/PretendardVariable.woff2" as="font" type="font/woff2" crossorigin><link id="lab-style" rel="stylesheet" href="lab.css?v=english-20261020">
 </head>
 <body>
-<header class="site-header"><a class="brand" href="index.html"><img src="assets/brand/any-logo-mono-reference.jpg" width="32" height="32" alt="ANY"><span>GitHub 협업 실습실</span></a><span class="lesson-name">백설공주, 함께 이어쓰기</span><button id="help-button" class="text-button">역할·개념</button></header>
+<header class="site-header"><a class="brand" href="index.html"><img src="assets/brand/any-logo-mono-reference.jpg" width="32" height="32" alt="ANY"><span>GitHub 협업 실습실</span></a><span class="lesson-name">백설공주, 함께 이어쓰기</span><div class="header-tools"><select id="language-select" aria-label="언어"><option data-no-translate value="ko">한국어</option><option data-no-translate value="en">English</option></select><button id="help-button" class="text-button">역할·개념</button></div></header>
 <main>
  <div class="lesson-tabs" role="tablist" aria-label="실습 선택"><button id="mode-mission" role="tab" aria-selected="true" aria-controls="workshop">협업 기초</button><button id="mode-coordination" role="tab" aria-selected="false" aria-controls="workshop" tabindex="-1">이슈와 충돌</button><button id="mode-combined" role="tab" aria-selected="false" aria-controls="workshop" tabindex="-1">종합 실습</button></div>
  <p id="error-message" class="error-message" role="alert" hidden></p><section id="workshop" role="tabpanel" aria-labelledby="mode-mission"><p id="load-status" role="status">실습 화면을 불러오고 있습니다.</p></section>
@@ -16,6 +16,11 @@
 <dialog id="info-dialog" aria-labelledby="info-title"><div class="dialog-heading"><h2 id="info-title"></h2><button id="info-close" class="close" aria-label="상세 설명 닫기">×</button></div><div id="info-body"></div></dialog>
 <noscript><p>JavaScript를 켜면 실습할 수 있습니다.</p></noscript>
 <script type="module">
+ let saved=null;try{saved=localStorage.getItem('github-workshop-language');}catch{}
+ const requested=new URLSearchParams(location.search).get('lang');
+ const language=['ko','en'].includes(requested)?requested:['ko','en'].includes(saved)?saved:'ko';
+ document.documentElement.lang=language;document.getElementById('language-select').value=language;
+ if(language==='en')document.getElementById('load-status').textContent='Loading the workshop…';
  const stylesReady=()=>getComputedStyle(document.documentElement).getPropertyValue('--workshop-ready').trim()==='1';
  const waitForStyles=()=>new Promise((resolve,reject)=>{
   if(stylesReady()){resolve();return;}
@@ -32,10 +37,10 @@
  const showLoadError=error=>{
   console.error('실습 초기화 실패',error);document.getElementById('load-status')?.remove();
   const message=document.getElementById('error-message');
-  message.textContent='실습 화면을 불러오지 못했습니다. 다시 시도해 주세요. ';
-  const retry=document.createElement('button');retry.type='button';retry.textContent='다시 불러오기';retry.onclick=()=>location.reload();
+  message.textContent=language==='en'?'The workshop could not load. Please try again. ':'실습 화면을 불러오지 못했습니다. 다시 시도해 주세요. ';
+  const retry=document.createElement('button');retry.type='button';retry.textContent=language==='en'?'Reload':'다시 불러오기';retry.onclick=()=>location.reload();
   message.append(retry);message.hidden=false;
  };
- waitForStyles().then(()=>import('./lab.js')).catch(showLoadError);
+ waitForStyles().then(()=>import('./lab.js?v=english-20261020')).catch(showLoadError);
 </script>
 </body></html>

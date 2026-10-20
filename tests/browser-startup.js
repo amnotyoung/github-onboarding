@@ -1,6 +1,6 @@
 // Run with Playwright CLI run-code against PORT=4174 node server.mjs.
 async (page) => {
- const url='http://127.0.0.1:4174/lab.html',checks=[];
+ const url='http://127.0.0.1:4174/lab.html?lang=ko',checks=[];
  await page.emulateMedia({reducedMotion:'reduce'});
  async function ready(){
   await page.getByRole('button',{name:'내 컴퓨터에 저장소 복제하기',exact:true}).waitFor({timeout:10000});
@@ -9,11 +9,11 @@ async (page) => {
  }
  await page.goto(url);await ready();checks.push('cold load');
  // Explicitly delay CSS beyond the inline module so WebKit's load ordering is exercised.
- await page.route('**/lab.css',async route=>{await new Promise(resolve=>setTimeout(resolve,1800));await route.continue();});
+ await page.route('**/lab.css*',async route=>{await new Promise(resolve=>setTimeout(resolve,1800));await route.continue();});
  await page.reload({waitUntil:'domcontentloaded'});await ready();checks.push('delayed stylesheet');
- await page.unroute('**/lab.css');
+ await page.unroute('**/lab.css*');
  for(const asset of ['lab.css','lab.js','workshop-model.mjs']){
-  const pattern=`**/${asset}`;
+  const pattern=`**/${asset}*`;
   await page.route(pattern,route=>route.abort());
   await page.reload();
   await page.getByRole('button',{name:'다시 불러오기',exact:true}).waitFor({timeout:10000});

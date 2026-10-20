@@ -1,12 +1,13 @@
+import {getLanguage,setLanguage,translate as t,localize} from './workshop-i18n.mjs';
 import {MODES,newWorkshop,currentStep,transitionWorkshop,fileEdit,documentLines,prStatus,observation} from './workshop-model.mjs';
 import {createWorkshopUI} from './workshop-ui.mjs';
-import {createWorkshopMotion,changeDescription,replayDescription} from './workshop-motion.mjs';
+import {createWorkshopMotion,changeDescription,replayDescription} from './workshop-motion.mjs?v=english-20261020';
 const $=s=>document.querySelector(s),names={mine:'내',jisu:'지수의',minsu:'민수의',remote:'GitHub'};
 const sessions=new Map(Object.keys(MODES).map(mode=>[mode,newWorkshop(mode)]));
 const requested=new URLSearchParams(location.search).get('mode');let mode=Object.hasOwn(MODES,requested)?requested:'mission',busy=false;
 const motion=createWorkshopMotion(),state=()=>sessions.get(mode);
 const ui=createWorkshopUI({getState:state,dispatch,openFile,openRecord,openInfo});
-function render(){ui.render();$('#workshop').setAttribute('aria-labelledby',`mode-${mode}`);const url=new URL(location.href);url.searchParams.set('mode',mode);url.hash=`step=${currentStep(state()).id}`;history.replaceState(null,'',url);}
+function render(){ui.render();$('#workshop').setAttribute('aria-labelledby',`mode-${mode}`);const url=new URL(location.href);url.searchParams.set('mode',mode);url.searchParams.set('lang',getLanguage());url.hash=`step=${currentStep(state()).id}`;history.replaceState(null,'',url);document.documentElement.lang=getLanguage();document.title=t('GitHub 협업 실습실 — ANY');$('#language-select').value=getLanguage();localize();}
 function focusAction(){($('#completion-title')||$('#workshop [data-action]'))?.focus({preventScroll:true});}
 async function dispatch(action){
  if(busy||motion.busy)return;busy=true;const startedMode=mode;$('#error-message').hidden=true;
@@ -15,7 +16,7 @@ async function dispatch(action){
   const before=state(),layout=motion.capture(),after=transitionWorkshop(before,action);sessions.set(mode,after);render();
   if(action.type!=='restart'&&action.type!=='done')await motion.play(layout,changeDescription(before,after,action.type));
   if(mode!==startedMode)return;if(action.type==='navigate')$('#step-jump').focus({preventScroll:true});else focusAction();
- }catch(error){$('#error-message').textContent=error.message;$('#error-message').hidden=false;}finally{busy=false;}
+ }catch(error){$('#error-message').textContent=t(error.message);$('#error-message').hidden=false;}finally{busy=false;}
 }
 const element=(tag,text,cls='')=>{const n=document.createElement(tag);n.textContent=text;if(cls)n.className=cls;return n;};
 function openFile(){
@@ -23,12 +24,12 @@ function openFile(){
  body.append(element('p','snow-white.md · 3번째 줄','file-label'));
  function diff(label,line,cls){const box=element('section','','file-diff '+cls);box.append(element('h3',label),element('p',line));return box;}
  if(edit.base){const versions=element('div','','file-conflicts');versions.append(diff('지수의 main · M1',edit.base,'context'),diff('지수의 happy · H',edit.before,'context'));body.append(versions);}else body.append(diff('수정 전',edit.before,'before'));
- body.append(diff('저장할 문장',edit.after,'after'));$('#file-save').onclick=()=>{dialog.close();dispatch({type:currentStep(state()).id});};dialog.showModal();
+ body.append(diff('저장할 문장',edit.after,'after'));$('#file-save').onclick=()=>{dialog.close();dispatch({type:currentStep(state()).id});};localize(dialog);dialog.showModal();
 }
 function openRecord(repo,id){
  const s=state(),ids=repo==='remote'?s.remote.commits:s.repos[repo]?.commits;if(!ids?.includes(id)||busy)return;
  $('#record-title').textContent=`기록 ${id}의 파일 내용`;$('#record-location').textContent=`${names[repo]} 저장소`;
- $('#record-content').textContent=documentLines(s.commits[id].line).map((line,i)=>`${i+1}  ${line}`).join('\n');$('#record-parents').textContent=s.commits[id].parents.length?`이전 기록: ${s.commits[id].parents.join(' + ')}`:'처음 기록입니다.';$('#record-dialog').showModal();
+ $('#record-content').textContent=documentLines(s.commits[id].line).map((line,i)=>`${i+1}  ${line}`).join('\n');$('#record-parents').textContent=s.commits[id].parents.length?`이전 기록: ${s.commits[id].parents.join(' + ')}`:'처음 기록입니다.';localize($('#record-dialog'));$('#record-dialog').showModal();
 }
 function openInfo(kind,id){
  if(busy)return;const s=state(),body=$('#info-body');body.replaceChildren();const p=t=>body.append(element('p',t));
@@ -48,9 +49,10 @@ function openInfo(kind,id){
  }else if(kind==='history'){
   const repo=id==='remote'?s.remote:s.repos[id];$('#info-title').textContent=`${names[id]} 저장소의 기록`;p('기록을 누르면 당시 파일 내용을 볼 수 있습니다.');const records=element('div','','info-records');for(const commit of repo.commits){const b=element('button',commit,'record');b.type='button';b.onclick=()=>{$('#info-dialog').close();openRecord(id,commit);};records.append(b);}body.append(records);p(`기준본 main: ${repo.main}`);for(const [branch,head] of Object.entries(repo.branches))p(`${branch}: ${head}`);
  }
- $('#info-dialog').showModal();
+ localize($('#info-dialog'));$('#info-dialog').showModal();
 }
 function setMode(next){if(next===mode||(busy&&!motion.busy))return;motion.cancel();for(const d of document.querySelectorAll('dialog[open]'))d.close();mode=next;render();}
 for(const id of Object.keys(MODES))$(`#mode-${id}`).onclick=()=>setMode(id);
 $('.lesson-tabs').onkeydown=event=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();const modes=Object.keys(MODES),i=modes.indexOf(mode),next=event.key==='Home'?0:event.key==='End'?modes.length-1:(i+(event.key==='ArrowRight'?1:-1)+modes.length)%modes.length;setMode(modes[next]);$(`#mode-${mode}`).focus();};
+$('#language-select').onchange=event=>{motion.cancel();setLanguage(event.target.value);render();};
 $('#help-button').onclick=()=>openInfo('help');$('#file-close').onclick=()=>$('#file-dialog').close();$('#record-close').onclick=()=>$('#record-dialog').close();$('#info-close').onclick=()=>$('#info-dialog').close();render();

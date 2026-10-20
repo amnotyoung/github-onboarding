@@ -1,0 +1,33 @@
+async(page)=>{
+ const checks=[];
+ await page.emulateMedia({reducedMotion:'no-preference'});
+ await page.goto('http://127.0.0.1:4180/lab.html?lang=ko');await page.locator('[data-action]').waitFor();
+ await page.locator('[data-action="clone-mine"]').click();
+ await page.waitForFunction(()=>document.body.dataset.transition==='animating');
+ await page.locator('#language-select').selectOption('en');
+ await page.waitForFunction(()=>!document.body.dataset.transition);
+ if(await page.locator('#workshop').getAttribute('data-step')!=='branch-story')throw Error('Language switch reset the completed action');
+ if(await page.locator('[data-flight]').count())throw Error('Animation was not cleared');
+ checks.push('switch during animation');
+ await page.locator('[data-action="branch-story"]').click();
+ await page.waitForSelector('[data-flight]');
+ if(/[가-힣]/.test(await page.locator('#action-instruction').innerText()))throw Error('Untranslated animation instruction');
+ await page.waitForFunction(()=>!document.body.dataset.transition);
+ await page.locator('[data-action="edit-story"]').click();
+ if(!(await page.locator('#file-body').innerText()).includes('Snow White'))throw Error('Untranslated editor');
+ await page.locator('#file-save').click();await page.waitForFunction(()=>!document.body.dataset.transition);
+ await page.locator('#language-select').selectOption('ko');
+ if(await page.locator('#workshop').getAttribute('data-step')!=='commit-story')throw Error('Saved edit lost after switching language');
+ checks.push('English animation and edit, return to Korean');
+ await page.route('**/lab.css*',async route=>{await new Promise(r=>setTimeout(r,1500));await route.continue();});
+ await page.goto('http://127.0.0.1:4180/lab.html?lang=en');await page.locator('[data-action]').waitFor({timeout:10000});
+ if(await page.locator('#error-message').isVisible())throw Error('Slow stylesheet broke startup');
+ await page.unroute('**/lab.css*');checks.push('English startup with delayed CSS');
+ await page.route('**/lab.js*',route=>route.abort());await page.reload();
+ await page.getByRole('button',{name:'Reload',exact:true}).waitFor();
+ if(await page.locator('#language-select').inputValue()!=='en')throw Error('Fallback lost the selected language');
+ if(!((await page.locator('#error-message').innerText()).includes('could not load')))throw Error('Fallback is not English');
+ await page.unroute('**/lab.js*');await page.getByRole('button',{name:'Reload',exact:true}).click();await page.locator('[data-action]').waitFor();
+ checks.push('English failure and retry');
+ return {checks};
+}

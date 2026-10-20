@@ -1,5 +1,6 @@
+import {translate as t} from './workshop-i18n.mjs';
 import {observation,MODES} from './workshop-model.mjs';
-const el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text)n.textContent=text;return n;};
+const el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text)n.textContent=t(text);return n;};
 export function changeDescription(before,after,type){
  const note=observation(after),moves=[];
  const move=(from,to,token,fromName,toName)=>moves.push({from,to,token,fromName,toName});
@@ -46,7 +47,7 @@ export function createWorkshopMotion(){
   for(const [,a] of leaves)a.node.classList.add('just-changed');
   if(reduced.matches)return true;
   const controls=new Map([...root.querySelectorAll('button,select')].map(n=>[n,n.disabled]));for(const n of controls.keys())n.disabled=true;
-  const instruction=document.querySelector('#action-instruction'),nextInstruction=instruction.textContent;instruction.textContent=`${description.title} · 변화 보기`;
+  const instruction=document.querySelector('#action-instruction'),nextInstruction=instruction.textContent;instruction.textContent=t(`${description.title} · 변화 보기`);
   root.setAttribute('aria-busy','true');document.body.dataset.transition='animating';
   const animations=[],floating=[],timers=[],restores=[];let frame=0;
   const animate=(n,frames,options={})=>{const a=n.animate(frames,{duration:600,easing:'ease-out',fill:'both',...options});animations.push(a);};
